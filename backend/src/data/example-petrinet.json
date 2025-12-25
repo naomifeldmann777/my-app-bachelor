@@ -1,0 +1,18 @@
+{
+    "id": "example1", 
+    "places": [
+        {"id": "p1", "label": "place 1", "position": { "x": -4, "y": 1.6, "z": -1.5 }, "tokens_number": 1}, 
+        {"id": "p2", "label": "place 2", "position": { "x": 0, "y": 1.6, "z": -1.5 }, "tokens_number": 0},
+        {"id": "p3", "label": "place 3", "position": { "x": 4, "y": 1.6, "z": -1.5 }, "tokens_number": 0}
+    ],
+    "transitions": [
+        {"id": "t1", "label": "transition 1", "position": { "x": -2, "y": 1.6, "z": -1.5 }, "robot_action": "pick"},
+        {"id": "t2", "label": "transition 2", "position": { "x": 2, "y": 1.6, "z": -1.5 }, "robot_action": "place"}
+    ],
+    "arcs": [
+        {"id": "a1", "label": "arc 1", "from": "p1", "to": "t1"},
+        {"id": "a2", "label": "arc 2", "from": "t1", "to": "p2"},
+        {"id": "a3", "label": "arc 3", "from": "p2", "to": "t2"},
+        {"id": "a4", "label": "arc 4", "from": "t2", "to": "p3"}
+    ] 
+}

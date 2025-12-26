@@ -10,9 +10,9 @@
         {"id": "t2", "label": "transition 2", "position": { "x": 2, "y": 1.6, "z": -1.5 }, "robot_action": "place"}
     ],
     "arcs": [
-        {"id": "a1", "label": "arc 1", "from": "p1", "to": "t1"},
-        {"id": "a2", "label": "arc 2", "from": "t1", "to": "p2"},
-        {"id": "a3", "label": "arc 3", "from": "p2", "to": "t2"},
-        {"id": "a4", "label": "arc 4", "from": "t2", "to": "p3"}
+        {"id": "a1", "label": "arc 1", "from": "p1", "to": "t1", "weight": 1},
+        {"id": "a2", "label": "arc 2", "from": "t1", "to": "p2", "weight": 1},
+        {"id": "a3", "label": "arc 3", "from": "p2", "to": "t2", "weight": 1},
+        {"id": "a4", "label": "arc 4", "from": "t2", "to": "p3", "weight": 1}
     ] 
 }

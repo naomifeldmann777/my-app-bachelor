@@ -28,7 +28,7 @@ export class PetriNetLoader {
         // Converts each JSON "transition" object into a Transition domain object
         const transitions = jsonData.transitions.map((t: any) => new Transition(t.id, t.label, t.robot_action, t.position)); 
         // Converts each JSON "arc" object into an Arc domain object
-        const arcs = jsonData.arcs.map((a:any) => new Arc(a.id, a.label, a.from, a.to)); 
+        const arcs = jsonData.arcs.map((a:any) => new Arc(a.id, a.label, a.weight, a.from, a.to)); 
         // Create and return the PetriNet object
         return new PetriNet(places, transitions, arcs); 
     }

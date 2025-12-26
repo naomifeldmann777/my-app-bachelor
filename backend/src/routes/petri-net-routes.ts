@@ -1,0 +1,22 @@
+import { Router } from 'express'; 
+import { PetriNetController } from '../controllers/petri-net-controller';
+import { PetriNetEngine } from '../services/petri-net-engine';
+
+// Create router instance
+const router = Router(); 
+
+// Create Petri net engine
+const engine = new PetriNetEngine();
+// Create controller with engine
+const controller = new PetriNetController(engine); 
+
+// Route to get Petri net state
+router.get('/state', controller.getState); 
+// Route to get fireable transitions
+router.get('/fireableTransitions', controller.getFireableTransitions); 
+// Route to check fireability
+router.post('/isFireable/:id', controller.isFireableById); 
+// Route to fire transition
+router.post('/fireTransition/:id', controller.fireTransitionById); 
+
+export default router; 

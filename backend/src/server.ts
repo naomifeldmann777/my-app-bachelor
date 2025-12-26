@@ -1,19 +1,24 @@
-import express from 'express'; // import the express framework (used to create the backend server)
-import cors from 'cors'; // import cors middleware (allows requests from other origins like Angular)
-import { PetriNetEngine } from './services/petri-net-engine';
+// Import the express framework (used to create the backend server)
+import express from 'express';
+// import cors middleware (allows requests from other origins like Angular)
+import cors from 'cors'; 
+import petriNetRoutes from './routes/petri-net-routes'; 
 
-const app = express(); // create an express application instance
-const PORT = 3000; // define the port where the backend will run
+// Create an express application instance
+const app = express(); 
+// Define the port where the backend will run
+const PORT = 3000; 
 
-const engine = new PetriNetEngine(); 
 
-app.use(cors()); // enable cors for all incoming requests
-app.use(express.json()); // enable JSON parsing for incoming requests
+// Enable cors for all incoming requests
+app.use(cors()); 
+// Enable JSON parsing for incoming requests
+app.use(express.json()); 
 
-app.get('/api/health', (_req, res) => { // define a GET endpoint at /api/health
-    res.json({ok: true}); // send a JSON response to the client
-})
+// Routes all requests starting with /api/petri to the Petri net route definitions
+app.use('/api/petri', petriNetRoutes); 
 
-app.listen(PORT, () => { // start the server and listen on the defined port
+// Start the server and listen on the defined port
+app.listen(PORT, () => { 
     console.log(`Backend running on http://localhost:${PORT}`);
 })

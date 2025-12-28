@@ -15,7 +15,7 @@ router.get('/state', controller.getState);
 // Route to get fireable transitions
 router.get('/fireableTransitions', controller.getFireableTransitions); 
 // Route to check fireability
-router.post('/isFireable/:id', controller.isFireableById); 
+router.get('/isFireable/:id', controller.isFireableById); 
 // Route to fire transition
 router.post('/fireTransition/:id', controller.fireTransitionById); 
 

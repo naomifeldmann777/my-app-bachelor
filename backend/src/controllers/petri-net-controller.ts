@@ -32,7 +32,7 @@ export class PetriNetController {
         res.json(fireableTransitions); 
     }
 
-    // POST /api/petri/isFireable/:id
+    // GET /api/petri/isFireable/:id
     // Checks whether a specific transition (by id) is fireable
     public isFireableById = (req: Request<{id: string}>, res: Response) => {
         // Get the transition ID from the URL parameters

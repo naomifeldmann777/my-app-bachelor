@@ -132,7 +132,7 @@ createLabel(text: string): THREE.Sprite {
 const floor = new THREE.Mesh(
   new THREE.BoxGeometry(floorSize, floorSize, 0.3),
   new THREE.MeshStandardMaterial({
-    color: 0x4B3621,
+    color: 0x4B3621, // 0x6A4A4A
     roughness: 0.85,
     metalness: 0.0
   })
@@ -208,12 +208,12 @@ scene.add(rightWall);
 
     // --------
     const geometry1 = new THREE.BoxGeometry(0.5, 1, 0.2); 
-    const material1 = new THREE.MeshBasicMaterial({ color: 0xff0000 }); 
+    const material1 = new THREE.MeshBasicMaterial({ color: 0xff0000}); //0xff2a1c   0x5e2028   0xff5348
     const cube = new THREE.Mesh(geometry1, material1); 
     cube.position.set(0, 1.6, -1.5); 
     scene.add(cube)
     const geometry2 = new THREE.SphereGeometry(0.5, 32, 16)
-    const material2 = new THREE.MeshBasicMaterial({color: 0x00fe00 }); 
+    const material2 = new THREE.MeshBasicMaterial({color: 0x00fe00 }); //0x7fff00   0x006344   0x87e57e
     const sphere = new THREE.Mesh(geometry2, material2); 
     sphere.position.set(1.5, 1.6, -1.5); 
     scene.add(sphere)
@@ -251,9 +251,9 @@ scene.add(rightWall);
         path, 
         (geometry) => {
           geometry.computeVertexNormals(); 
-          const material = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.1, roughness: 0.7}); 
+          const material = new THREE.MeshStandardMaterial({color: 0xcccccc, metalness: 0.1, roughness: 0.7});  //0xcccccc 0xcc9aa2
           const mesh = new THREE.Mesh(geometry, material); 
-
+          
           const group = new THREE.Group(); 
           group.add(mesh); 
           onComplete(group); 
@@ -267,16 +267,90 @@ scene.add(rightWall);
     };
 
     let robot: any = null; 
+    const jointMeshes = new Map<string, THREE.Mesh[]>();
+
     urdfLoader.load("robot/me6_robot.urdf", (r) => {
       robot = r
       robot.position.set(2.5, 0, 0); 
       robot.rotation.x = -Math.PI / 2;
-      robot.scale.set(8, 8, 8); 
-      scene.add(robot); 
+      robot.scale.set(8, 8, 8);
+
+      scene.add(robot);
+
       console.log("URDF robot loaded:", robot); 
     })
 
 
+
+    function setLinkColor(link: any, color: number) {
+  link.traverse((child: any) => {
+    if (child.isMesh) {
+      child.material = child.material.clone();
+      child.material.color.setHex(color);
+    }
+  });
+}
+
+
+    const jointNames = [
+      'joint1',
+      'joint2',
+      'joint3',
+      'joint4',
+      'joint5',
+      'joint6'
+    ];
+
+    let activeJointIndex = 0;
+    let phaseTime = 0;
+    const phaseDuration = 2.0; // Sekunden pro Joint
+
+    renderer.setAnimationLoop(() => {
+  controls.update();
+
+  if (!robot) {
+    renderer.render(scene, camera);
+    return;
+  }
+
+  const delta = 0.016;
+  phaseTime += delta;
+
+  // 1️⃣ Aktuellen Joint bestimmen
+  const jointName = jointNames[activeJointIndex];
+  const joint = robot.joints[jointName];
+
+  // 2️⃣ Joint bewegen
+  const value = Math.sin((phaseTime / phaseDuration) * Math.PI * 2);
+  joint.setJointValue(value);
+
+  // 3️⃣ ALLE Links grau setzen
+  Object.values(robot.links).forEach((link: any) => {
+    setLinkColor(link, 0xcccccc);
+  });
+
+  // 4️⃣ Aktiven Link rot färben
+  const activeLinkName = `Link${activeJointIndex + 1}`;
+  const activeLink = robot.links[activeLinkName];
+
+  if (activeLink) {
+    setLinkColor(activeLink, 0xff0000);
+  }
+
+  // 5️⃣ Nächster Joint
+  if (phaseTime >= phaseDuration) {
+    phaseTime = 0;
+    activeJointIndex = (activeJointIndex + 1) % jointNames.length;
+  }
+
+  renderer.render(scene, camera);
+});
+
+
+
+
+
+    /*
     let t = 0; 
     renderer.setAnimationLoop(() => {
       controls.update();
@@ -288,7 +362,7 @@ scene.add(rightWall);
       }
       renderer.render(scene, camera); 
     }); 
-  }
 
-  
+    */
+  }
 }

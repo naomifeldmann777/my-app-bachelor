@@ -4,6 +4,10 @@ import { Injectable } from '@angular/core';
 import * as THREE from 'three'; 
 // Imports the VR button to enter/exit WebXR mode
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { PetriNetBuilder } from '../meshes/petri-net-builder';
+import { PetriNetModel } from '../../domain/petri-net-model';
+import { PetriApiService } from '../../api/petri-net-api-service';
 
 // Makes this service a singleton available throughout the app
 @Injectable({providedIn: 'root'})
@@ -16,7 +20,10 @@ export class VrSceneService {
     // Handles rendering the scene to a WebGL canvas
     private renderer!: THREE.WebGLRenderer;
 
+    constructor(private petriNetApi: PetriApiService) {}
+
     init(containerId: string) {
+
         // Finds the DOM element where the renderer will be attached
         const container = document.getElementById(containerId); 
 
@@ -28,12 +35,15 @@ export class VrSceneService {
         // Creates a perspective camera
         this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100); 
         // Positions the camera at eye height for VR
-        this.camera.position.set(0 ,1.6, 0); 
+        this.camera.position.set(0 ,1.6, 3); 
 
         // Creates the WebGL renderer
         this.renderer = new THREE.WebGLRenderer({antialias: true}); 
         // Sets the renderer size to fill the window
         this.renderer.setSize(window.innerWidth, window.innerHeight); 
+        
+     
+
         // Enables WebXR support for VR rendering
         this.renderer.xr.enabled = true; 
         // Adds the renderer’s canvas to the container element
@@ -41,8 +51,18 @@ export class VrSceneService {
         // Adds a VR button to the page to enter/exit VR mode 
         document.body.appendChild(VRButton.createButton(this.renderer));
 
+
+        const controls = new OrbitControls(this.camera, this.renderer.domElement);
+        controls.target.set(0, 0, 0);
+        controls.update(); 
+
+        // Load the petri net to be visualized in the scene
+        this.loadPetriNet(); 
+
+        
         // Starts the render loop
         this.renderer.setAnimationLoop(() => {
+            controls.update();
             // Renders the scene from the camera’s point of view
             this.renderer.render(this.scene, this.camera);
         });
@@ -60,9 +80,29 @@ export class VrSceneService {
              // Updates the renderer size to match the window
             this.renderer.setSize(width, height);
         });
+        
     }
-}
 
+    // Method to trigger a refresh of the VR Scene
+    refreshScene(): void {
+        this.loadPetriNet(); 
+    }
+
+    // Method to load the latest Petri net state from the backend
+    loadPetriNet(): void {
+        // Subscribe  to the observable returned by the API and wait for the Petri net data
+        this.petriNetApi.getState().subscribe(petriNet => {
+            // Once the data arrives, update the VR scene with the new Petri net
+            this.updateScene(petriNet);
+        });
+    }
+    // Update the Three.js scene using the provided Petri net model
+    updateScene(petriNet: PetriNetModel) {
+        // Delegate the actual construction of meshes (places, transitions, arcs) to the PetriNetBuilder
+        PetriNetBuilder.buildNet(this.scene, petriNet);
+    }
+
+}
 
 
 
@@ -83,7 +123,6 @@ export class VrSceneService {
 
 /*
 
-
 import { Component, signal, AfterViewInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import * as THREE from 'three'; 
@@ -91,8 +130,10 @@ import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import URDFLoader from 'urdf-loader';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { VrSceneService } from './visualization/scene/vr-scene-service';
-export class App implements AfterViewInit{
+import { Injectable } from '@angular/core';
+
+@Injectable({providedIn: 'root'})
+export class VrSceneService {
 
 
 
@@ -169,23 +210,23 @@ createLabel(text: string): THREE.Sprite {
 
 
 
-  ngAfterViewInit(): void {
+  init(containerId: string): void {
     
-    const container = document.getElementById('three-container')!; 
+    const container = document.getElementById(containerId)!; 
 
     const scene = new THREE.Scene(); 
     scene.background = new THREE.Color(0x445C6E) //0x4A5A66 //0x4A5057
 
     const camera = new THREE.PerspectiveCamera(
       70, 
-      window.innerWidth / window.innerHeight, 
+      container.clientWidth / container.clientHeight, 
       0.1, 
       100
     ); 
     camera.position.set(0,1.6,3); 
 
     const renderer = new THREE.WebGLRenderer({antialias: true}); 
-    renderer.setSize(window.innerWidth, window.innerHeight); 
+    renderer.setSize(container.clientWidth, container.clientHeight); 
     renderer.xr.enabled = true; 
     container.appendChild(renderer.domElement); 
 
@@ -238,7 +279,7 @@ floor.add(b2);
 floor.add(b3); 
 floor.add(b4); 
 
-/*
+
 const wallHeight = 3;
 const wallDistance = 8;
 const wallWidth = 16;
@@ -359,7 +400,7 @@ scene.add(rightWall);
       console.log("URDF robot loaded:", robot); 
     })
 
-
+/*
 
     function setLinkColor(link: any, color: number) {
   link.traverse((child: any) => {
@@ -428,8 +469,8 @@ scene.add(rightWall);
 
 
 
-
-    
+*/
+    /*
     let t = 0; 
     renderer.setAnimationLoop(() => {
       controls.update();
@@ -445,5 +486,4 @@ scene.add(rightWall);
     
   }
 }
-
 */

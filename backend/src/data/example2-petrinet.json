@@ -5,7 +5,7 @@
         {"id": "p2", "label": "place 2", "position": { "x": -2, "y": 4, "z": -1.5 }, "tokens_number": 0},
         {"id": "p3", "label": "place 3", "position": { "x": -2, "y": 2.4, "z": -1.5 }, "tokens_number": 0},
         {"id": "p4", "label": "place 4", "position": { "x": -2, "y": 0.8, "z": -1.5 }, "tokens_number": 0},
-        {"id": "p5", "label": "place 5", "position": { "x": -2, "y": 0.8, "z": -1.5 }, "tokens_number": 2},
+        {"id": "p5", "label": "place 5", "position": { "x": -2, "y": -0.8, "z": -1.5 }, "tokens_number": 2},
         {"id": "p6", "label": "place 6", "position": { "x": 2, "y": 3.2, "z": -1.5 }, "tokens_number": 1},
         {"id": "p7", "label": "place 7", "position": { "x": 2, "y": 0, "z": -1.5 }, "tokens_number": 1},
         {"id": "p8", "label": "place 8", "position": { "x": 6, "y": 1.6, "z": -1.5 }, "tokens_number": 0}
@@ -18,19 +18,20 @@
         {"id": "t5", "label": "transition 5", "position": { "x": 4, "y": 1.6, "z": -1.5 }, "robot_action": "move3"}
     ],
     "arcs": [
-        {"id": "a1", "label": "arc 1", "from": "p1", "to": "t1", "weight": 2},
-        {"id": "a2", "label": "arc 2", "from": "p1", "to": "t2", "weight": 1},
-        {"id": "a3", "label": "arc 3", "from": "t1", "to": "p2", "weight": 1},
-        {"id": "a4", "label": "arc 4", "from": "t1", "to": "p3", "weight": 1}, 
-        {"id": "a5", "label": "arc 5", "from": "t2", "to": "p4", "weight": 1}, 
-        {"id": "a6", "label": "arc 6", "from": "p2", "to": "t3", "weight": 1}, 
-        {"id": "a7", "label": "arc 7", "from": "p3", "to": "t3", "weight": 1}, 
-        {"id": "a8", "label": "arc 8", "from": "p4", "to": "t4", "weight": 1}, 
-        {"id": "a9", "label": "arc 9", "from": "p5", "to": "t4", "weight": 1}, 
-        {"id": "a10", "label": "arc 10", "from": "t3", "to": "p6", "weight": 2}, 
-        {"id": "a11", "label": "arc 11", "from": "t4", "to": "p7", "weight": 1}, 
-        {"id": "a12", "label": "arc 12", "from": "p6", "to": "t5", "weight": 1}, 
-        {"id": "a13", "label": "arc 13", "from": "p7", "to": "t5", "weight": 1}, 
-        {"id": "a14", "label": "arc 14", "from": "t5", "to": "p8", "weight": 1}
+        {"id": "a1", "from": "p1", "to": "t1", "weight": 2},
+        {"id": "a2", "from": "p1", "to": "t2", "weight": 1},
+        {"id": "a3", "from": "t1", "to": "p2", "weight": 1},
+        {"id": "a4", "from": "t1", "to": "p3", "weight": 1}, 
+        {"id": "a5", "from": "t2", "to": "p4", "weight": 1}, 
+        {"id": "a6", "from": "t2", "to": "p5", "weight": 1},
+        {"id": "a7", "from": "p2", "to": "t3", "weight": 1}, 
+        {"id": "a8", "from": "p3", "to": "t3", "weight": 1}, 
+        {"id": "a9", "from": "p4", "to": "t4", "weight": 1}, 
+        {"id": "a10", "from": "p5", "to": "t4", "weight": 1}, 
+        {"id": "a11", "from": "t3", "to": "p6", "weight": 2}, 
+        {"id": "a12", "from": "t4", "to": "p7", "weight": 1}, 
+        {"id": "a13", "from": "p6", "to": "t5", "weight": 1}, 
+        {"id": "a14", "from": "p7", "to": "t5", "weight": 1}, 
+        {"id": "a15", "from": "t5", "to": "p8", "weight": 1}
     ] 
 }

@@ -8,10 +8,45 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PetriNetBuilder } from '../meshes/petri-net-builder';
 import { PetriNetModel } from '../../domain/petri-net-model';
 import { PetriApiService } from '../../api/petri-net-api-service';
-
+import { VrControlPanel } from '../ui/vr-control-panel';
 // Makes this service a singleton available throughout the app
 @Injectable({providedIn: 'root'})
 export class VrSceneService {
+
+
+  //
+
+private raycaster = new THREE.Raycaster();
+private tempMatrix = new THREE.Matrix4();
+private controlPanel?: VrControlPanel;
+private netGroup?: THREE.Group;
+private onPointerDown = (event: PointerEvent) => {
+  // Desktop-Klick: mit Maus auf Panel raycasten
+  if (!this.camera || !this.renderer || !this.controlPanel) return;
+
+  const rect = this.renderer.domElement.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  const ndc = new THREE.Vector2(x, y);
+
+  this.raycaster.setFromCamera(ndc, this.camera);
+
+  const intersects = this.raycaster.intersectObjects(
+    this.controlPanel.group.children,
+    true
+  );
+
+  if (intersects.length === 0) return;
+
+  let obj: any = intersects[0].object;
+  while (obj && !obj.userData?.onClick) obj = obj.parent;
+  obj?.userData?.onClick?.();
+};
+
+
+
+
+  //
 
     // Holds the Three.js scene
     private scene!: THREE.Scene;
@@ -36,12 +71,15 @@ export class VrSceneService {
         this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100); 
         // Positions the camera at eye height for VR
         this.camera.position.set(0 ,1.6, 3); 
+        this.scene.add(this.camera);
 
         // Creates the WebGL renderer
         this.renderer = new THREE.WebGLRenderer({antialias: true}); 
         // Sets the renderer size to fill the window
         this.renderer.setSize(window.innerWidth, window.innerHeight); 
-        
+        // Wichtig für Pointer-Events auf Touch/Mouse
+        this.renderer.domElement.style.touchAction = 'none';
+        this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
      
 
         // Enables WebXR support for VR rendering
@@ -50,6 +88,38 @@ export class VrSceneService {
         container?.appendChild(this.renderer.domElement);
         // Adds a VR button to the page to enter/exit VR mode 
         document.body.appendChild(VRButton.createButton(this.renderer));
+
+
+        const controller = this.renderer.xr.getController(0);
+this.scene.add(controller);
+
+controller.addEventListener('select', () => {
+
+  // Ray aus Controller-Richtung
+  this.tempMatrix.identity().extractRotation(controller.matrixWorld);
+  this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+  this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this.tempMatrix);
+
+  // 🔴 WICHTIG: NUR Panel raycasten
+  if (!this.controlPanel) return;
+
+  const intersects = this.raycaster.intersectObjects(
+    this.controlPanel.group.children,
+    true
+  );
+
+  if (intersects.length > 0) {
+    let obj: any = intersects[0].object;
+
+    // nach oben laufen, bis Button gefunden
+    while (obj && !obj.userData.onClick) {
+      obj = obj.parent;
+    }
+
+    obj?.userData.onClick?.();
+  }
+});
+
 
 
         const controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -94,13 +164,87 @@ export class VrSceneService {
         this.petriNetApi.getState().subscribe(petriNet => {
             // Once the data arrives, update the VR scene with the new Petri net
             this.updateScene(petriNet);
+            this.showControlPanel();
         });
     }
     // Update the Three.js scene using the provided Petri net model
     updateScene(petriNet: PetriNetModel) {
-        // Delegate the actual construction of meshes (places, transitions, arcs) to the PetriNetBuilder
-        PetriNetBuilder.buildNet(this.scene, petriNet);
+      // Remove old net group if present to avoid overlaying
+      if (this.netGroup) {
+        this.scene.remove(this.netGroup);
+        // dispose meshes to free GPU memory
+        this.netGroup.traverse((obj) => {
+          const mesh = obj as THREE.Mesh & { geometry?: THREE.BufferGeometry; material?: any };
+          if ((mesh as any).geometry) {
+            (mesh as any).geometry.dispose?.();
+          }
+          if ((mesh as any).material) {
+            const mat = (mesh as any).material;
+            if (Array.isArray(mat)) mat.forEach((m) => m.dispose?.());
+            else mat.dispose?.();
+          }
+        });
+      }
+
+      this.netGroup = new THREE.Group();
+      this.scene.add(this.netGroup);
+
+      // Delegate the actual construction of meshes (places, transitions, arcs) to the PetriNetBuilder
+      PetriNetBuilder.buildNet(this.netGroup, petriNet);
     }
+
+
+
+
+  
+
+
+
+showControlPanel(): void {
+  // altes Panel entfernen
+  if (this.controlPanel) {
+    // vom tatsächlichen Parent (Kamera) lösen und Ressourcen freigeben
+    const grp = this.controlPanel.group;
+    grp.parent?.remove(grp);
+    grp.traverse((obj) => {
+      const mesh = obj as THREE.Mesh & { geometry?: THREE.BufferGeometry; material?: any };
+      if ((mesh as any).geometry) {
+        (mesh as any).geometry.dispose?.();
+      }
+      if ((mesh as any).material) {
+        const mat = (mesh as any).material;
+        if (Array.isArray(mat)) mat.forEach((m) => {
+          // dispose texture maps if any
+          if (m.map) m.map.dispose?.();
+          m.dispose?.();
+        });
+        else {
+          if (mat.map) mat.map.dispose?.();
+          mat.dispose?.();
+        }
+      }
+    });
+  }
+
+  this.petriNetApi.getFireableTransitions().subscribe(transitions => {
+    this.controlPanel = new VrControlPanel(transitions, (id: string) => {
+      this.fireTransition(id);
+    });
+    this.controlPanel.group.position.set(0.9, 0.45, -1);
+    this.camera.add(this.controlPanel.group);
+    
+
+
+  });
+}
+
+
+fireTransition(id: string) {
+  this.petriNetApi.fireTransition(id).subscribe(state => {
+    this.updateScene(state.state); // Token animation
+    this.showControlPanel();    // refresh buttons
+  });
+}
 
 }
 

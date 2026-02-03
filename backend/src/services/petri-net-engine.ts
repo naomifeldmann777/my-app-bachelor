@@ -15,7 +15,7 @@ export class PetriNetEngine {
         // Create a loader instance
         const loader = new PetriNetLoader(); 
         // Load the Petri net model from a JSON file 
-        this.petriNet = loader.loadFromFile("../data/example2-petrinet.json"); 
+        this.petriNet = loader.loadFromFile("../data/example3-petrinet.json"); 
     }
 
     // Returns the full current Petri net state

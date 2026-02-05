@@ -9,25 +9,32 @@ import { PetriNetLoader } from "./petri-net-loader";
 // It holds the Petri net state and provides methods to query and modify it.
 export class PetriNetEngine {
     // The current Petri net instance from the selected json file
-    public petriNet: PetriNet; 
+    public currentPetriNet: PetriNet;
+    // Create a loader instance
+    public loader = new PetriNetLoader(); 
 
     constructor () {
-        // Create a loader instance
-        const loader = new PetriNetLoader(); 
         // Load the Petri net model from a JSON file 
-        this.petriNet = loader.loadFromFile("../data/example3-petrinet.json"); 
+        this.currentPetriNet = this.loader.loadFromFile("../data/example3-petrinet.json"); 
     }
 
     // Returns the full current Petri net state
     // Used by the controller to send petri net state to the frontend
     public getState(): PetriNet {
-        return this.petriNet;
+        return this.currentPetriNet; 
+    }
+
+    // Resets the Petri net to its initial state loaded from the JSON file and returns it
+    // Used by the controller to reset the petri net when requested by the frontend
+    public resetPetriNet() {
+        this.currentPetriNet = this.loader.loadFromFile("../data/example3-petrinet.json"); 
+        return this.currentPetriNet; 
     }
 
     // Returns all currently fireable transitions
     public getFireableTransitions(): Transition[] {
         // Get all transitions of the Petri net
-        let transitions: Transition[] = this.petriNet.transitions; 
+        let transitions: Transition[] = this.currentPetriNet.transitions; 
         // Filter transitions based on the fireability condition
         let fireableTransitions: Transition[] = transitions.filter((t) => this.isFireable(t));
         // Return only transitions that can currently fire
@@ -37,7 +44,7 @@ export class PetriNetEngine {
     // Checks the fireability of a transition by its ID
     public isFireableById(id: string): boolean {
         // Find the transition with the given ID
-        const transition = this.petriNet.transitions.find(t => t.id === id);
+        const transition = this.currentPetriNet.transitions.find(t => t.id === id);
         // If the transition does not exist, it is not fireable
         if (!transition) {
             return false; 
@@ -50,7 +57,7 @@ export class PetriNetEngine {
     // This is the method that will be called by the controller
     public fireTransitionById(id: string): boolean {
         // Find the transition with the given ID
-        const transition = this.petriNet.transitions.find(t => t.id === id);
+        const transition = this.currentPetriNet.transitions.find(t => t.id === id);
         // If no such transition exists, firing fails
         if (!transition) {
             return false;
@@ -63,9 +70,9 @@ export class PetriNetEngine {
     private isFireable(transition: Transition): boolean {
 
         // Find all incoming arcs (Place -> this Transition)
-        const incomingArcs: Arc[] = this.petriNet.arcs.filter(a => a.to === transition.id); 
+        const incomingArcs: Arc[] = this.currentPetriNet.arcs.filter(a => a.to === transition.id); 
         // Find all outgoing arcs (this Transition -> Place)
-        const outgoingArcs: Arc[] = this.petriNet.arcs.filter(a => a.from === transition.id); 
+        const outgoingArcs: Arc[] = this.currentPetriNet.arcs.filter(a => a.from === transition.id); 
         // Transition must have at least one incoming and one outgoing arc
         if (incomingArcs.length === 0 || outgoingArcs.length === 0) {
             return false; 
@@ -73,7 +80,7 @@ export class PetriNetEngine {
         // Check if there are enough tokens for every input place
         for (let arc of incomingArcs) {
             // Find the input place connected to this arc
-            let inputPlace: Place | undefined = this.petriNet.places.find(p => p.id === arc.from); 
+            let inputPlace: Place | undefined = this.currentPetriNet.places.find(p => p.id === arc.from); 
             // If input place lacks tokens, transition is not fireable
             if (!inputPlace || inputPlace.tokens < arc.weight){
                 return false; 
@@ -89,14 +96,14 @@ export class PetriNetEngine {
             return false; 
         }
         // Retrieve all incoming arcs (Place -> Transition)
-        const incomingArcs: Arc[] = this.petriNet.arcs.filter(a => a.to === transition.id);
+        const incomingArcs: Arc[] = this.currentPetriNet.arcs.filter(a => a.to === transition.id);
         // Retrieve all outgoing arcs (Transition -> Place)
-        const outgoingArcs: Arc[] = this.petriNet.arcs.filter(a => a.from === transition.id);
+        const outgoingArcs: Arc[] = this.currentPetriNet.arcs.filter(a => a.from === transition.id);
 
         // Consume tokens from all input places
         for (let arc of incomingArcs) {
             // Find the input place connected to this arc
-            let inputPlace: Place | undefined = this.petriNet.places.find(p => p.id === arc.from); 
+            let inputPlace: Place | undefined = this.currentPetriNet.places.find(p => p.id === arc.from); 
             // Subtract tokens according to arc weight
             if (inputPlace) {
                 inputPlace.tokens -= arc.weight; 
@@ -106,7 +113,7 @@ export class PetriNetEngine {
         // Produce tokens to all output places
         for (let arc of outgoingArcs) {
             // Find the output place connected to this arc
-            let outputPlace: Place | undefined = this.petriNet.places.find(p => p.id === arc.to); 
+            let outputPlace: Place | undefined = this.currentPetriNet.places.find(p => p.id === arc.to); 
             // Add tokens according to arc weight
             if (outputPlace) {
                 outputPlace.tokens += arc.weight; 

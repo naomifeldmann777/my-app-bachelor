@@ -18,6 +18,13 @@ export class PetriApiService {
         return this.http.get<PetriNetModel>(`${this.baseUrl}/state`);     
     }
 
+    // Requests a reset of the Petri net to its initial state and gets the reset state
+    // POST request to backend endpoint
+    reset(): Observable<PetriNetModel> {
+        return this.http.post<PetriNetModel>(`${this.baseUrl}/reset`, {})
+    }
+
+
     // Requests all currently fireable transitions
     // GET request to backend endpoint
     getFireableTransitions(): Observable<TransitionModel[]> {

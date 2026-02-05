@@ -1,251 +1,241 @@
-// Allows this class to be injected
 import { Injectable } from '@angular/core';
-// Imports the Three.js library for 3D rendering
 import * as THREE from 'three'; 
-// Imports the VR button to enter/exit WebXR mode
-import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js'; 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { PetriNetBuilder } from '../meshes/petri-net-builder';
-import { PetriNetModel } from '../../domain/petri-net-model';
-import { PetriApiService } from '../../api/petri-net-api-service';
-import { VrControlPanel } from '../ui/vr-control-panel';
-// Makes this service a singleton available throughout the app
-@Injectable({providedIn: 'root'})
+import ThreeMeshUI from 'three-mesh-ui'; // Mesh-based UI/text for Three.js
+import { PetriNetBuilder } from '../meshes/petri-net-builder'; 
+import { PetriNetModel } from '../../domain/petri-net-model'; 
+import { PetriApiService } from '../../api/petri-net-api-service'; 
+import { VrControlPanel } from '../ui/vr-control-panel'; 
+
+@Injectable({ providedIn: 'root' }) // So that the service is available in the whole app
 export class VrSceneService {
+  private scene!: THREE.Scene; // Root scene 
+  private camera!: THREE.PerspectiveCamera; // Main perspective camera
+  private renderer!: THREE.WebGLRenderer; // WebGL renderer outputting to canvas
+  private controls!: OrbitControls; // Desktop orbit controls
 
+  private raycaster = new THREE.Raycaster(); // Raycaster for UI hit testing
+  private mouse = new THREE.Vector2(Number.NaN, Number.NaN); // Mouse in normalized device coordinates
+  private selectState = false; // True while pointer/VR trigger is pressed
+  private objsToTest: THREE.Object3D[] = []; // UI objects to raycast against
+  private wasSelecting = false; // True if trigger was pressed in the previous frame -> to detect a new press (edge-trigger)
 
-  //
+  private netGroup?: THREE.Group; // Group holding current Petri net meshes
+  private panelGroup?: THREE.Object3D; // Root of the control panel UI
 
-private raycaster = new THREE.Raycaster();
-private tempMatrix = new THREE.Matrix4();
-private controlPanel?: VrControlPanel;
-private netGroup?: THREE.Group;
-private onPointerDown = (event: PointerEvent) => {
-  // Desktop-Klick: mit Maus auf Panel raycasten
-  if (!this.camera || !this.renderer || !this.controlPanel) return;
+  constructor(private petriNetApi: PetriApiService) {} // Inject API client
 
-  const rect = this.renderer.domElement.getBoundingClientRect();
-  const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  const ndc = new THREE.Vector2(x, y);
+  init(containerId: string): void { // Initialize scene, renderer, events, and UI
+    const container = document.getElementById(containerId); // Host element for canvas
 
-  this.raycaster.setFromCamera(ndc, this.camera);
+    this.scene = new THREE.Scene(); // Create scene
+    this.scene.background = new THREE.Color(0x445c6e); // Set background color
 
-  const intersects = this.raycaster.intersectObjects(
-    this.controlPanel.group.children,
-    true
-  );
+    this.camera = new THREE.PerspectiveCamera( // Create perspective camera
+      70, // Field of view in degrees
+      window.innerWidth / window.innerHeight, // Aspect ratio
+      0.1, // Near clip
+      100 // Far clip
+    );
+    this.camera.position.set(0, 1.6, 3); // Place at typical eye height
+    this.scene.add(this.camera); // Attach camera to scene
 
-  if (intersects.length === 0) return;
+    this.renderer = new THREE.WebGLRenderer({ antialias: true }); // Create WebGL renderer
+    this.renderer.setSize(window.innerWidth, window.innerHeight); // Match window size
+    this.renderer.xr.enabled = true; // Enable WebXR for VR
 
-  let obj: any = intersects[0].object;
-  while (obj && !obj.userData?.onClick) obj = obj.parent;
-  obj?.userData?.onClick?.();
-};
+    container?.appendChild(this.renderer.domElement); // Add canvas to DOM
+    document.body.appendChild(VRButton.createButton(this.renderer)); // Add VR entry button
 
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement); // Init orbit controls
+    this.controls.target.set(0, 0, 0); // Look at origin
+    this.controls.update(); 
 
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8); // Ambient sky/ground light
+    hemi.position.set(0, 1, 0); // Position hemisphere light
+    this.scene.add(hemi); // Add to scene
+    const dir = new THREE.DirectionalLight(0xffffff, 0.6); // Directional light for shading
+    dir.position.set(2, 3, 2); // Position directional light
+    this.scene.add(dir); // Add to scene
 
+    // Load initial petri net state 
+    this.loadCurrentState(); // Fetch backend state and build meshes
 
-  //
+    // Build initial control panel
+    this.refreshControlPanel(); // Build control panel with fireable transitions
 
-    // Holds the Three.js scene
-    private scene!: THREE.Scene;
-    // Holds the camera that defines the viewer’s perspective
-    private camera!: THREE.PerspectiveCamera;
-    // Handles rendering the scene to a WebGL canvas
-    private renderer!: THREE.WebGLRenderer;
+    // Desktop-Events
+    window.addEventListener('pointermove', (event) => { // Update NDC mouse coords
+      this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1; // Map X to [-1,1]
+      this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1; // Map Y to [-1,1], invert Y
+    });
+    window.addEventListener('pointerdown', () => (this.selectState = true)); // Press/hold
+    window.addEventListener('pointerup', () => (this.selectState = false)); // Release
 
-    constructor(private petriNetApi: PetriApiService) {}
+    // XR-Controller
+    const controller = this.renderer.xr.getController(0); // First VR controller
+    this.scene.add(controller); // Add to scene for matrix updates
+    controller.addEventListener('selectstart', () => (this.selectState = true)); // Trigger pressed
+    controller.addEventListener('selectend', () => (this.selectState = false)); // Trigger released
 
-    init(containerId: string) {
+    // Render-Loop
+    this.renderer.setAnimationLoop(() => { // VR-aware animation loop
+      ThreeMeshUI.update(); // Update UI layout/state
+      this.controls.update(); // Update orbit controls
+      this.updateButtons(); // Handle hover/selected UI states
+      this.renderer.render(this.scene, this.camera); // Draw frame
+    });
 
-        // Finds the DOM element where the renderer will be attached
-        const container = document.getElementById(containerId); 
-
-        // Creates a new Three.js scene
-        this.scene = new THREE.Scene(); 
-         // Sets the background color of the scene
-        this.scene.background = new THREE.Color(0x445C6E); 
-        
-        // Creates a perspective camera
-        this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100); 
-        // Positions the camera at eye height for VR
-        this.camera.position.set(0 ,1.6, 3); 
-        this.scene.add(this.camera);
-
-        // Creates the WebGL renderer
-        this.renderer = new THREE.WebGLRenderer({antialias: true}); 
-        // Sets the renderer size to fill the window
-        this.renderer.setSize(window.innerWidth, window.innerHeight); 
-        // Wichtig für Pointer-Events auf Touch/Mouse
-        this.renderer.domElement.style.touchAction = 'none';
-        this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
-     
-
-        // Enables WebXR support for VR rendering
-        this.renderer.xr.enabled = true; 
-        // Adds the renderer’s canvas to the container element
-        container?.appendChild(this.renderer.domElement);
-        // Adds a VR button to the page to enter/exit VR mode 
-        document.body.appendChild(VRButton.createButton(this.renderer));
-
-
-        const controller = this.renderer.xr.getController(0);
-this.scene.add(controller);
-
-controller.addEventListener('select', () => {
-
-  // Ray aus Controller-Richtung
-  this.tempMatrix.identity().extractRotation(controller.matrixWorld);
-  this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-  this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this.tempMatrix);
-
-  // 🔴 WICHTIG: NUR Panel raycasten
-  if (!this.controlPanel) return;
-
-  const intersects = this.raycaster.intersectObjects(
-    this.controlPanel.group.children,
-    true
-  );
-
-  if (intersects.length > 0) {
-    let obj: any = intersects[0].object;
-
-    // nach oben laufen, bis Button gefunden
-    while (obj && !obj.userData.onClick) {
-      obj = obj.parent;
-    }
-
-    obj?.userData.onClick?.();
+    // Resize
+    window.addEventListener('resize', () => { // Keep camera/renderer in sync
+      const width = window.innerWidth; // New width
+      const height = window.innerHeight; // New height
+      this.camera.aspect = width / height; // Update aspect
+      this.camera.updateProjectionMatrix(); // Recompute projection
+      this.renderer.setSize(width, height); // Resize renderer
+    });
   }
-});
 
+  // Fetch current net from backend and build scene
+  private loadCurrentState(): void { 
+    this.petriNetApi.getState().subscribe((petriNet: PetriNetModel) => { // Subscribe to HTTP result
+      this.rebuildNet(petriNet); // Build net meshes from state
+    });
+  }
 
-
-        const controls = new OrbitControls(this.camera, this.renderer.domElement);
-        controls.target.set(0, 0, 0);
-        controls.update(); 
-
-        // Load the petri net to be visualized in the scene
-        this.loadPetriNet(); 
-
-        
-        // Starts the render loop
-        this.renderer.setAnimationLoop(() => {
-            controls.update();
-            // Renders the scene from the camera’s point of view
-            this.renderer.render(this.scene, this.camera);
-        });
-
-        // Listens for browser window resize events
-        window.addEventListener('resize', () => {
-            // Gets the new window width
-            const width = window.innerWidth;
-            // Gets the new window height
-            const height = window.innerHeight;
-            // Updates the camera’s aspect ratio
-            this.camera.aspect = width / height;
-            // Recalculates the camera projection matrix
-            this.camera.updateProjectionMatrix();
-             // Updates the renderer size to match the window
-            this.renderer.setSize(width, height);
-        });
-        
+  // Replace current net with given state
+  private rebuildNet(petriNet: PetriNetModel): void { 
+    // Remove old net if exists
+    if (this.netGroup) { // Remove previous net group if exists
+      this.scene.remove(this.netGroup); // Detach from scene
+      this.disposeGroup(this.netGroup); // Dispose geometries/materials
+      this.netGroup = undefined; // Clear reference
     }
+    // Create new group and build net inside
+    this.netGroup = new THREE.Group(); // Create fresh group
+    this.scene.add(this.netGroup); // Attach to scene
+    PetriNetBuilder.buildNet(this.netGroup, petriNet); // Build places/transitions/arcs inside group
+  }
 
-    // Method to trigger a refresh of the VR Scene
-    refreshScene(): void {
-        this.loadPetriNet(); 
-    }
-
-    // Method to load the latest Petri net state from the backend
-    loadPetriNet(): void {
-        // Subscribe  to the observable returned by the API and wait for the Petri net data
-        this.petriNetApi.getState().subscribe(petriNet => {
-            // Once the data arrives, update the VR scene with the new Petri net
-            this.updateScene(petriNet);
-            this.showControlPanel();
-        });
-    }
-    // Update the Three.js scene using the provided Petri net model
-    updateScene(petriNet: PetriNetModel) {
-      // Remove old net group if present to avoid overlaying
-      if (this.netGroup) {
-        this.scene.remove(this.netGroup);
-        // dispose meshes to free GPU memory
-        this.netGroup.traverse((obj) => {
-          const mesh = obj as THREE.Mesh & { geometry?: THREE.BufferGeometry; material?: any };
-          if ((mesh as any).geometry) {
-            (mesh as any).geometry.dispose?.();
-          }
-          if ((mesh as any).material) {
-            const mat = (mesh as any).material;
-            if (Array.isArray(mat)) mat.forEach((m) => m.dispose?.());
-            else mat.dispose?.();
-          }
-        });
+  // Free GPU resources in a group
+  private disposeGroup(group: THREE.Group): void { 
+    group.traverse((obj) => { // Traverse all descendants
+      const mesh = obj as THREE.Mesh & { geometry?: THREE.BufferGeometry; material?: any }; // Treat as mesh
+      if ((mesh as any).geometry) { // If geometry exists
+        (mesh as any).geometry.dispose?.(); // Dispose geometry
       }
-
-      this.netGroup = new THREE.Group();
-      this.scene.add(this.netGroup);
-
-      // Delegate the actual construction of meshes (places, transitions, arcs) to the PetriNetBuilder
-      PetriNetBuilder.buildNet(this.netGroup, petriNet);
-    }
-
-
-
-
-  
-
-
-
-showControlPanel(): void {
-  // altes Panel entfernen
-  if (this.controlPanel) {
-    // vom tatsächlichen Parent (Kamera) lösen und Ressourcen freigeben
-    const grp = this.controlPanel.group;
-    grp.parent?.remove(grp);
-    grp.traverse((obj) => {
-      const mesh = obj as THREE.Mesh & { geometry?: THREE.BufferGeometry; material?: any };
-      if ((mesh as any).geometry) {
-        (mesh as any).geometry.dispose?.();
-      }
-      if ((mesh as any).material) {
-        const mat = (mesh as any).material;
-        if (Array.isArray(mat)) mat.forEach((m) => {
-          // dispose texture maps if any
-          if (m.map) m.map.dispose?.();
-          m.dispose?.();
-        });
-        else {
-          if (mat.map) mat.map.dispose?.();
-          mat.dispose?.();
+      if ((mesh as any).material) { // If material exists
+        const mat = (mesh as any).material; // Material may be array
+        if (Array.isArray(mat)) { // Dispose array entries
+          mat.forEach((m) => {
+            if (m.map) m.map.dispose?.(); // Dispose texture map if present
+            m.dispose?.(); // Dispose material
+          });
+        } else {
+          if (mat.map) mat.map.dispose?.(); // Dispose single material map
+          mat.dispose?.(); // Dispose single material
         }
       }
     });
   }
 
-  this.petriNetApi.getFireableTransitions().subscribe(transitions => {
-    this.controlPanel = new VrControlPanel(transitions, (id: string) => {
-      this.fireTransition(id);
+  // Build VR control panel and attach to camera
+  private refreshControlPanel(): void { 
+    // Remove previous panel if present
+    if (this.panelGroup) { 
+      this.panelGroup.parent?.remove(this.panelGroup); // Detach from camera
+      this.panelGroup = undefined; // Clear reference
+    }
+    this.objsToTest = []; // Reset clickable buttons list
+
+    this.petriNetApi.getFireableTransitions().subscribe((transitions) => { // Fetch fireable transitions
+      const items = transitions.map((t: any) => ({ // Map to id/label used by UI
+        id: t.id,
+        label: t.label ?? t.id
+      }));
+
+      const { group, buttons } = VrControlPanel.createControlPanel( // Create panel + buttons
+        items,
+        (id: string) => this.fireTransition(id), // Fire callback
+        () => this.resetSimulation() // Reset callback
+      );
+
+      // Attach panel to camera (HUD)
+      this.camera.add(group); 
+      this.panelGroup = group; // Keep reference
+      group.position.set(0.95, -0.45, -1.4); // Position in view space
+      (group as any).rotation.x = -0.15; // Slight tilt for readability
+      group.scale.set(0.5, 0.5, 1); // Scale down
+      // Register clickable buttons for raycasting
+      this.objsToTest.push(...buttons); 
     });
-    this.controlPanel.group.position.set(0.9, 0.45, -1);
-    this.camera.add(this.controlPanel.group);
-    
+  }
 
+  // Update UI button states based on raycasting
+  private updateButtons(): void { 
+    let intersect: THREE.Intersection | null = null; // Closest hit
 
-  });
-}
+    if (this.renderer.xr.isPresenting) { // VR mode: cast from controller forward
+      const controller = this.renderer.xr.getController(0);
+      if (controller) {
+        const tempMatrix = new THREE.Matrix4().identity().extractRotation(controller.matrixWorld); // Orientation only
+        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld); // Ray origin = controller
+        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix); // Forward direction
+        intersect = this.raycast(this.objsToTest); // Find closest hit
+      }
+    } else if (!Number.isNaN(this.mouse.x) && !Number.isNaN(this.mouse.y)) { // Desktop mode: cast from camera
+      this.raycaster.setFromCamera(this.mouse, this.camera); // Build ray from mouse NDC
+      intersect = this.raycast(this.objsToTest); // Find closest hit
+    }
 
+    if (intersect && (intersect.object as any).isUI) { // If a UI element was hit
+      const ui = intersect.object as any; // ThreeMeshUI component
+      const isSelecting = this.selectState; // Current pressed state
+      if (isSelecting && !this.wasSelecting) { // Edge-trigger: pressed this frame
+        ui.setState('selected'); // Trigger selected state (fires callbacks)
+      } else if (!isSelecting) { // Not pressed: hover feedback
+        ui.setState('hovered'); // Hover state
+      }
+      this.wasSelecting = isSelecting; // Track pressed state for next frame
+    } else {
+      // No UI hit: reset previous selection if any
+      this.wasSelecting = this.selectState; // Update tracking even if no hit
+    }
 
-fireTransition(id: string) {
-  this.petriNetApi.fireTransition(id).subscribe(state => {
-    this.updateScene(state.state); // Token animation
-    this.showControlPanel();    // refresh buttons
-  });
-}
+    this.objsToTest.forEach((obj: any) => { // Reset others to idle
+      if ((!intersect || obj !== intersect.object) && obj.isUI) obj.setState('idle');
+    });
+  }
 
+  private raycast(list: THREE.Object3D[]): THREE.Intersection | null { // Find nearest intersection
+    return list.reduce<THREE.Intersection | null>((closest, obj) => { // Accumulate closest hit
+      const hits = this.raycaster.intersectObject(obj, true); // Test object and children
+      if (!hits[0]) return closest; // No hit on this object
+      const hit = hits[0]; // Nearest hit for this object
+      if (!closest || hit.distance < closest.distance) { // Closer than previous
+        hit.object = obj; // Normalize to top-level object
+        return hit; // New closest
+      }
+      return closest; // Keep previous closest
+    }, null);
+  }
+
+  // Fire transition via backend and rebuild scene
+  private fireTransition(id: string): void { 
+    this.petriNetApi.fireTransition(id).subscribe((resp: { fired: boolean; state: PetriNetModel }) => { 
+      this.rebuildNet(resp.state); // Use returned state
+      this.refreshControlPanel(); // Refresh fireable transitions UI
+    });
+  }
+
+  // Reset to original state via backend
+  private resetSimulation(): void { 
+    this.petriNetApi.reset().subscribe((petriNet: PetriNetModel) => { 
+      this.rebuildNet(petriNet); // Rebuild net from reset state
+      this.refreshControlPanel(); // Refresh panel accordingly
+    });
+  }
 }
 
 

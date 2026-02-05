@@ -22,6 +22,16 @@ export class PetriNetController {
         res.json(state); 
     }
 
+    // POST /api/petri/reset
+    // Resets the Petri net to its initial state
+    // Endpoint used by the frontend to reset the petri net to the initial configuration defined in the JSON file
+    public reset = (req: Request, res: Response) => {
+        // Reset the petri net in the engine
+        const state = this.engine.resetPetriNet(); 
+        // Send the reset petri net state as JSON to the client
+        res.json(state); 
+    }
+    
     // GET /api/petri/fireableTransitions
     // Returns all transitions that are currently fireable
     // Used by the frontend to display enabled transitions in the UI

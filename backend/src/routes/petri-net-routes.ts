@@ -18,5 +18,7 @@ router.get('/fireableTransitions', controller.getFireableTransitions);
 router.get('/isFireable/:id', controller.isFireableById); 
 // Route to fire transition
 router.post('/fireTransition/:id', controller.fireTransitionById); 
+// Route to reset Petri net
+router.post('/reset', controller.reset)
 
 export default router; 

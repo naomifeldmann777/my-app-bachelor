@@ -1,13 +1,13 @@
 export class Transition {
     public id: string; 
     public label: string; 
-    public robotAction: string; 
+    public capability: string; 
     public position: { x: number, y: number, z: number}; 
     
-    constructor (id: string, label: string, robotAction: string, position: {x: number, y: number, z: number}) {
+    constructor (id: string, label: string, capability: string, position: {x: number, y: number, z: number}) {
         this.id = id; 
         this.label = label;
-        this.robotAction = robotAction; 
+        this.capability = capability; 
         this.position = position; 
     }
 }

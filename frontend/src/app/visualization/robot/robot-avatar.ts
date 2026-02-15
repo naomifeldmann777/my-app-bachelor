@@ -9,7 +9,7 @@ export class RobotAvatar {
   // URDF loader instance to load the robot file
   private urdfLoader: URDFLoader;
   // The actual robot object (loaded from URDF file)
-  public robot?: any;
+  private robot?: any;
   // Array storing current angles for all 6 joints of the robot (in radians)
   private currentJoints = [0, 0, 0, 0, 0, 0];
   // Indicates whether an animation is currently running

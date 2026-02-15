@@ -2,6 +2,6 @@
 export interface TransitionModel {
     id: string; 
     label: string; 
-    robotAction: string; 
+    capability: string; 
     position: { x: number, y: number, z: number};
 }

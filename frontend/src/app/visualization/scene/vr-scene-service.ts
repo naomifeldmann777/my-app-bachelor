@@ -241,6 +241,21 @@ export class VrSceneService {
     this.petriNetApi.fireTransition(id).subscribe((resp: { fired: boolean; state: PetriNetModel }) => { 
       this.rebuildNet(resp.state); // Use returned state
       this.refreshControlPanel(); // Refresh fireable transitions UI
+
+      // If transition has capability 'move', move robot to the output place position
+      const transition = resp.state.transitions?.find(t => t.id === id);
+        if (transition?.capability === 'move' && this.robotAvatar) {
+          // find first arc that goes from this transition to a place
+          const outArc = resp.state.arcs?.find(a => a.from === id);
+          if (outArc) {
+            const place = resp.state.places?.find(p => p.id === outArc.to);
+            if (place && place.position) {
+              const target = new THREE.Vector3(place.position.x, place.position.y, place.position.z);
+              // call animateToXYZ asynchronously; don't block the UI
+              this.robotAvatar.animateToXYZ(target, {lockIndices: [3,4,5]}) //Lock wrist joints for natural movement;
+            }
+          }
+        }
     });
   }
 
@@ -249,6 +264,8 @@ export class VrSceneService {
     this.petriNetApi.reset().subscribe((petriNet: PetriNetModel) => { 
       this.rebuildNet(petriNet); // Rebuild net from reset state
       this.refreshControlPanel(); // Refresh panel accordingly
+      // Move robot back to initial pose after reset (if loaded)
+      this.robotAvatar?.setJoints([0, 0, -1.57, 0, 1.57, 0]);
     });
   }
 }

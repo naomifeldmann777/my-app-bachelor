@@ -13,8 +13,15 @@ export class PlaceMesh {
         this.place = place; 
         // Create a spherical geometry
         const geometry = new THREE.SphereGeometry(0.5, 64, 64); 
-        // Create a green material that is not affected by lights
-        const material = new THREE.MeshBasicMaterial({color: 0x00ff00}); 
+        // Create material that is not affected by lights
+        let material; 
+        if (this.place.role === 'ee_position') { // If the place has role "ee_position", use green material 
+            material = new THREE.MeshBasicMaterial({color: 0x00ff00}); 
+        } else if (this.place.role === 'object_state') { // If the place has role "object_state", use blue material 
+            material = new THREE.MeshBasicMaterial({color:0x0000ff}); 
+        } else if (this.place.role === 'ee_state') { // If the place has role "ee_state", use yellow material 
+            material = new THREE.MeshBasicMaterial({color:0xffff00}); 
+        }
         // Combine geometry and material into a renderable mesh
         this.mesh = new THREE.Mesh(geometry, material); 
         // Set mesh position in world space

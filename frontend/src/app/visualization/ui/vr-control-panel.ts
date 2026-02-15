@@ -67,7 +67,7 @@ export class VrControlPanel {
     // Options for component.setupState() -> ThreeMeshUI applies these attributes when e.g.`setState('hovered')` is called
     // Hovered state attributes
     const hovered = {
-      state: 'hovered', // / Activated on hover (via raycasting input calling setState)
+      state: 'hovered', // Activated on hover (via raycasting input calling setState)
       attributes: {
         offset: 0.025, 
         backgroundColor: new THREE.Color(0x999999), // Lighter background on hover
@@ -85,6 +85,16 @@ export class VrControlPanel {
         fontColor: new THREE.Color(0xffffff) // White text
       }
     };
+    // Disabled state attributes
+    const disabled = {
+      state: 'disabled', // Activated when button should not accept input (e.g. during animation)
+      attributes: {
+        offset: 0.025,
+        backgroundColor: new THREE.Color(0x333333), // Darker background to indicate disabled state
+        backgroundOpacity: 0.2,
+        fontColor: new THREE.Color(0x888888) // Gray text to indicate disabled state
+      }
+    };
     // Define and register the "selected" state:
     resetBtn.setupState({
       state: 'selected', // Activated on click (via raycasting input calling setState)
@@ -95,6 +105,8 @@ export class VrControlPanel {
     resetBtn.setupState(hovered);
     // Register the "idle" state:
     resetBtn.setupState(idle);
+    // Register disabled state so external code can show disabled look
+    resetBtn.setupState(disabled);
 
     // Add reset button to the panel 
     container.add(resetBtn); 
@@ -141,9 +153,10 @@ export class VrControlPanel {
         attributes: idle.attributes, 
         onSet: () => onFire(t.id) // Invoke fire callback with transition id
       });
-      // Register hovered and idle states
+      // Register hovered, idle and disabled states
       btn.setupState(hovered); 
       btn.setupState(idle); 
+      btn.setupState(disabled);
 
       // Add button to the panel
       container.add(btn); 

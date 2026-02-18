@@ -19,6 +19,6 @@ app.use(express.json());
 app.use('/api/petri', petriNetRoutes); 
 
 // Start the server and listen on the defined port
-app.listen(PORT, () => { 
+app.listen(PORT, '0.0.0.0',() => { 
     console.log(`Backend running on http://localhost:${PORT}`);
-})
+}) 

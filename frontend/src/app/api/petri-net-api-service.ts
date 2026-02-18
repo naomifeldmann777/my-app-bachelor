@@ -8,7 +8,7 @@ import { TransitionModel } from "../domain/transition-model";
 export class PetriApiService {
 
     // Base URL of the backend Petri net API
-    private baseUrl: string = 'http://localhost:3000/api/petri'; 
+    private baseUrl: string = '/api/petri'; 
 
     constructor(private http: HttpClient) {}
     

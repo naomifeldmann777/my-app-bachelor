@@ -169,7 +169,7 @@ export class VrSceneService {
       );
 
       // Attach panel to camera (HUD)
-      this.camera.add(group); 
+      this.scene.add(group); 
       this.panelGroup = group; // Keep reference
       group.position.set(0.95, -0.45, -1.4); // Position in view space
       (group as any).rotation.x = -0.15; // Slight tilt for readability
@@ -193,6 +193,20 @@ export class VrSceneService {
 
     if (this.renderer.xr.isPresenting) { // VR mode: cast from controller forward
       const controller = this.renderer.xr.getController(0);
+      // Controller holen (für Trigger Input)
+this.scene.add(controller);
+
+// Linie erstellen, die den Ray sichtbar macht
+const geometry = new THREE.BufferGeometry().setFromPoints([
+  new THREE.Vector3(0, 0, 0), // Startpunkt = Controller
+  new THREE.Vector3(0, 0, -1) // Richtung = vorwärts
+]);
+const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
+const line = new THREE.Line(geometry, material);
+line.name = 'ray';
+line.scale.z = 5; // Länge des sichtbaren Strahls
+controller.add(line);
+
       if (controller) {
         const tempMatrix = new THREE.Matrix4().identity().extractRotation(controller.matrixWorld); // Orientation only
         this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld); // Ray origin = controller

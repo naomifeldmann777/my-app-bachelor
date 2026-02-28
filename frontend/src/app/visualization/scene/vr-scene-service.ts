@@ -244,6 +244,7 @@ export class VrSceneService {
     });
   }
 
+  // Helper method to raycast against a list of objects and find the closest intersection
   private raycast(list: THREE.Object3D[]): THREE.Intersection | null { // Find nearest intersection
     return list.reduce<THREE.Intersection | null>((closest, obj) => { // Accumulate closest hit
       const hits = this.raycaster.intersectObject(obj, true); // Test object and children
@@ -257,26 +258,38 @@ export class VrSceneService {
     }, null);
   }
 
-  // Fire transition via backend and rebuild scene
+  // Fires a transition by ID, then updates the net and control panel based on the backend response
+  // Also triggers robot animations based on transition capabilities
   private fireTransition(id: string): void { 
     this.petriNetApi.fireTransition(id).subscribe((resp: { fired: boolean; state: PetriNetModel }) => { 
       this.rebuildNet(resp.state); // Use returned state
       this.refreshControlPanel(); // Refresh fireable transitions UI
 
-      // If transition has capability 'move', move robot to the output place position
+      // For the Robot synchronization -> we trigger the corresponding robot animation based on the capability of the fired transition
       const transition = resp.state.transitions?.find(t => t.id === id);
+      // If transition has capability 'move', move robot to the output place position
         if (transition?.capability === 'move' && this.robotAvatar) {
-          // find first arc that goes from this transition to a place
+          // Find first arc that goes from this transition to a place
           const outArc = resp.state.arcs?.find(a => a.from === id);
           if (outArc) {
+            // Find the output place of the transition
             const place = resp.state.places?.find(p => p.id === outArc.to);
             if (place && place.position) {
+              // Get the XYZ coordinates of the output place
               const target = new THREE.Vector3(place.position.x, place.position.y, place.position.z);
-              // call animateToXYZ asynchronously; don't block the UI
-              this.robotAvatar.animateToXYZ(target, {lockIndices: [3,4,5]}) //Lock wrist joints for natural movement;
+              // Call animateToXYZ asynchronously; don't block the UI
+              this.robotAvatar.animateToXYZ(target, {lockIndices: [3,4,5]}) // Lock wrist joints for natural movement;
             }
           }
         }
+      // If transition has capability 'pick', trigger the robot's pick animation (for simplicity, we just color the end-effector in yellow for a moment)
+      if (transition?.capability === 'pick' && this.robotAvatar) {
+        this.robotAvatar?.flashEndEffectorColor(new THREE.Color(0xffea00));
+      }
+      // If transition has capability 'place', trigger the robot's place animation (for simplicity, we just color the end-effector in orange for a moment)
+      if (transition?.capability === 'place' && this.robotAvatar) {
+        this.robotAvatar?.flashEndEffectorColor(new THREE.Color(0xff6a00));
+      }
     });
   }
 

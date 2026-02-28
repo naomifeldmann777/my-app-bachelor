@@ -252,5 +252,31 @@ export class RobotAvatar {
     // Use the standard animation function with calculated angles
     await this.animateTo(angles, 5000, easing);
   }
+
+  public flashEndEffectorColor(color: THREE.Color, duration = 5000): void {
+    // If robot not loaded, do nothing
+    if (!this.robot) return;
+    // Find the robot's end-effector (the tip that should reach the target)
+    const ee = (this.robot as any).getObjectByName?.('joint6');
+    // If end-effector not found, do nothing
+    if (!ee) return;
+    // Find the first mesh under the end-effector (URDF provides a single mesh for Link6)
+    const mesh = ee.getObjectByProperty?.('isMesh', true) as THREE.Mesh | null;
+    // If no mesh found, do nothing
+    if (!mesh) return;
+    // Mark that an animation is running to prevent other animations
+    this.animRunning = true;
+    // Store material 
+    const material: any = mesh.material;
+    // Store original color to restore later
+    const originalColor = material?.color?.clone(); 
+    // Set the material color to the given color to create a flash effect
+    material?.color?.copy(color);
+    // After the specified duration, restore the original color and mark animation as finished
+    setTimeout(() => {
+      if (originalColor && material?.color) material.color.copy(originalColor);
+      this.animRunning = false;
+    }, duration);
+  }
 }
 

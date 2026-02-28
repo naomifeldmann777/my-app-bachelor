@@ -86,12 +86,16 @@ export class VrSceneService {
     controller.addEventListener('selectstart', () => (this.selectState = true)); // Trigger pressed
     controller.addEventListener('selectend', () => (this.selectState = false)); // Trigger released
 
-    // Render-Loop
-    this.renderer.setAnimationLoop(() => { // VR-aware animation loop
-      ThreeMeshUI.update(); // Update UI layout/state
+    // Create a THREE.Clock instance to measure the time between frames --> to calculate 'delta' (time elapsed since the last frame) --> ensures smooth animation
+    const clock = new THREE.Clock();
+    // Set up the main render loop using setAnimationLoop ( called automatically by Three.js at the correct frame rate)
+    this.renderer.setAnimationLoop(() => { 
+      const delta = clock.getDelta(); // Get the time (in seconds) since the last frame
+      ThreeMeshUI.update(); // Update the 3D UI layout and state
       this.controls.update(); // Update orbit controls
-      this.updateButtons(); // Handle hover/selected UI states
-      this.renderer.render(this.scene, this.camera); // Draw frame
+      this.robotAvatar?.update(delta); // Advance robot animation by 'delta' seconds (smooth, time-based)
+      this.updateButtons(); // Update UI button states (e.g., hover, disabled)
+      this.renderer.render(this.scene, this.camera); // Render the scene from the camera's perspective
     });
 
     // Resize
@@ -173,7 +177,7 @@ export class VrSceneService {
       this.panelGroup = group; // Keep reference
       group.position.set(0.95, -0.45, -1.4); // Position in view space
       (group as any).rotation.x = -0.15; // Slight tilt for readability
-      group.scale.set(0.5, 0.5, 1); // Scale down
+      group.scale.set(4, 4, 1); // Scale down
       // Register clickable buttons for raycasting
       this.objsToTest.push(...buttons); 
     });
@@ -188,31 +192,34 @@ export class VrSceneService {
       this.wasSelecting = this.selectState;
       return;
     }
-
     let intersect: THREE.Intersection | null = null; // Closest hit
 
-    if (this.renderer.xr.isPresenting) { // VR mode: cast from controller forward
-      const controller = this.renderer.xr.getController(0);
-      // Controller holen (für Trigger Input)
-this.scene.add(controller);
+    if (this.renderer.xr.isPresenting) { // If in VR mode, use controller for raycasting
+      const controller = this.renderer.xr.getController(0); // Get the first VR controller
+      this.scene.add(controller); // Add controller to scene 
 
-// Linie erstellen, die den Ray sichtbar macht
-const geometry = new THREE.BufferGeometry().setFromPoints([
-  new THREE.Vector3(0, 0, 0), // Startpunkt = Controller
-  new THREE.Vector3(0, 0, -1) // Richtung = vorwärts
-]);
-const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
-const line = new THREE.Line(geometry, material);
-line.name = 'ray';
-line.scale.z = 5; // Länge des sichtbaren Strahls
-controller.add(line);
+      // Create a visible line to show the ray direction from the controller
+      const geometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0), // Line starts at the controller's origin
+        new THREE.Vector3(0, 0, -1) // Line points forward from the controller
+      ]);
+      const material = new THREE.LineBasicMaterial({ color: 0xff0000 }); // Red line material
+      const line = new THREE.Line(geometry, material); // CreateS the line mesh
+      line.name = 'ray'; // Names the line for reference/removal
+      line.scale.z = 5; // Makes the line 5 units long (visible in VR)
+      controller.add(line); // Attach the line to the controller so it moves with it
 
       if (controller) {
-        const tempMatrix = new THREE.Matrix4().identity().extractRotation(controller.matrixWorld); // Orientation only
-        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld); // Ray origin = controller
-        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix); // Forward direction
-        intersect = this.raycast(this.objsToTest); // Find closest hit
+        // Create a rotation matrix from the controller's world matrix (extracts orientation only, removes translation)
+        const tempMatrix = new THREE.Matrix4().identity().extractRotation(controller.matrixWorld); 
+        // Set the ray's origin to the controller's current world position
+        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld); 
+        // Set the ray's direction to point forward (-Z) in the controller's local space, transformed to world space
+        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix); 
+        // Perform raycasting against all interactive UI objects and get the closest intersection
+        intersect = this.raycast(this.objsToTest); 
       }
+
     } else if (!Number.isNaN(this.mouse.x) && !Number.isNaN(this.mouse.y)) { // Desktop mode: cast from camera
       this.raycaster.setFromCamera(this.mouse, this.camera); // Build ray from mouse NDC
       intersect = this.raycast(this.objsToTest); // Find closest hit

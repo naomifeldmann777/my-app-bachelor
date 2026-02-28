@@ -14,6 +14,15 @@ export class RobotAvatar {
   private currentJoints = [0, 0, 0, 0, 0, 0];
   // Indicates whether an animation is currently running
   private animRunning = false;
+  // Current animation state for joint interpolation; null if no animation is running
+  private animState: null | {
+    start: number[]; // Starting joint angles at the beginning of the animation
+    target: number[]; // Target joint angles to reach at the end of the animation
+    duration: number; // Total duration of the animation in milliseconds
+    elapsed: number; // Time elapsed since the animation started (in milliseconds)
+    resolve: () => void; // Callback to resolve the animation Promise
+    easing: (t:number)=>number // Easing function for interpolation
+  } = null;
   // Names of the 6 robot joints in order
   private readonly jointOrder = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6'];
 
@@ -87,49 +96,56 @@ export class RobotAvatar {
     }
   }
 
-  // Private method: Smoothly animate joints from current position to target angles
-  private async animateTo(
-    target: number[],                           // Target joint angles (in radians)
-    duration = 1000,                            // How long the animation takes (milliseconds)
-    easing: 'linear' | 'easeInOut' = 'easeInOut'   // Animation style: linear or smooth
+  // Animate joints from current angles to target angles over time
+  private animateTo(
+    target: number[], // Target joint angles to animate to
+    duration = 1000, // Duration of the animation in milliseconds
+    easing: 'linear' | 'easeInOut' = 'easeInOut' // Easing type for smoothness
   ): Promise<void> {
-    // If robot not loaded, do nothing
-    if (!this.robot) return Promise.resolve();
-    // Perform animation in a Promise
+    if (!this.robot) return Promise.resolve(); // If robot isn't loaded, do nothing
+    this.animRunning = true; // Mark that an animation is running
+    // Choose the easing function for interpolation (smooth or linear)
+    const ease = easing === 'easeInOut'
+      ? (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t // Smooth ease-in-out
+      : (t: number) => t; // Linear easing (no smoothing)
+    // Return a Promise that resolves when the animation is finished
     return new Promise<void>(resolve => {
-      // Mark that an animation is running (used by UI to disable buttons)
-      this.animRunning = true;
-      // Copy current joint angles to have stable start values for interpolation
-      const start = [...this.currentJoints];
-      // Pick easing function: either linear (identity) or easeInOut (smooth start+end)
-      const ease = easing === 'easeInOut'
-        ? (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t // ease-in-out curve
-        : (t: number) => t; // linear
-
-      // Timestamp when animation started (ms precision)
-      const startTime = performance.now();
-
-      // Per-frame update function
-      const step = () => {
-        // Calculate normalized animation progress in [0,1]
-        const progress = Math.min(1, (performance.now() - startTime) / duration);
-        // For each joint: new = start + (target - start) * easedProgress
-        // If target array is shorter than joint count, keep remaining joints at start
-        this.setJoints(
-          start.map((value, index) => index < target.length ? value + (target[index] - value) * ease(progress) : value)
-        );
-        // If animation not finished, request next frame, otherwise finish
-        if (progress < 1) {
-          requestAnimationFrame(step);
-        } else {
-          // Mark not running and resolve promise so callers can await completion
-          this.animRunning = false;
-          resolve();
-        }
+      // Store the animation state so the update() method can advance it each frame
+      this.animState = {
+        start: [...this.currentJoints], // The joint angles at the start of the animation
+        target,                         // The target joint angles to reach at the end of the animation     
+        duration,                       // Total duration of the animation in milliseconds    
+        elapsed: 0,                     // Time elapsed since the animation started (in milliseconds)    
+        resolve,                        // Callback to resolve the Promise when animation is complete 
+        easing: ease                    // Easing function for interpolation (smooth or linear)    
       };
-      // Kick off the first frame
-      requestAnimationFrame(step);
     });
+  }
+
+  // Method to be called every frame to update the animation state and apply joint angle changes
+  public update(delta: number) {
+    // If there is no active animation state, nothing to do
+    if (!this.animState) return;
+    // Advance the stored animation's elapsed time by the frame delta (delta is seconds, convert to ms)
+    this.animState.elapsed += delta * 1000;
+    // Compute normalized progress t in [0,1] (elapsed / duration) and clamp to 1
+    const t = Math.min(1, this.animState.elapsed / this.animState.duration);
+    // Apply easing function to the normalized progress for smooth interpolation
+    const eased = this.animState.easing(t);
+    // Interpolate each joint from its start angle toward the target using the eased progress
+    const next = this.animState.start.map((s, i) => s + (this.animState!.target[i] - s) * eased);
+    // Apply the interpolated joint angles to the robot and remember them as current joints
+    this.setJoints(next);
+
+    // If we've reached the end of the animation (t === 1), finalize
+    if (t === 1) {
+      // Mark that no animation is running
+      this.animRunning = false;
+      // Call the stored resolve function to fulfill the Promise returned by animateTo()
+      this.animState.resolve();
+      // Clear the animation state so future frames skip the animation block
+      this.animState = null;
+    }
   }
 
   // Returns whether an animation is currently running

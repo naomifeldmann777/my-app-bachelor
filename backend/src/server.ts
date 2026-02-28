@@ -18,7 +18,11 @@ app.use(express.json());
 // Routes all requests starting with /api/petri to the Petri net route definitions
 app.use('/api/petri', petriNetRoutes); 
 
-// Start the server and listen on the defined port
+
+// Start the server and listen on the defined port.
+// Listening on '0.0.0.0' makes the server accept connections on all network interfaces
+// (not just localhost). This allows other devices on the same LAN (for example a VR
+// headset) to reach the backend at http://<MACHINE_IP>:3000.
 app.listen(PORT, '0.0.0.0',() => { 
-    console.log(`Backend running on http://localhost:${PORT}`);
+    console.log(`Backend running on port ${PORT}`);
 }) 

@@ -165,8 +165,6 @@ export class RobotAvatar {
     // PHASE 1: Calculate joint angles needed to reach target position (Inverse Kinematics)
     // Number of IK iterations to try 
     const iterations = 800;
-    // How much to move joints each step
-    let stepScale; 
     // Animation style for final movement (default: smooth easeInOut)
     const easing = opts?.easing ?? 'easeInOut';
     // Set of joint indices that should not move during robot movement (locked joints)
@@ -185,11 +183,7 @@ export class RobotAvatar {
     // IK Loop: Try to move joints to get end-effector closer to target --> Cyclic Coordinate Descent method (CCD)
     for (let iter = 0; iter < iterations; iter++) {
       // Get current position of end-effector in 3D space
-      let eePos = ee.getWorldPosition(new THREE.Vector3()); ;
-      // Calculate distance between current position and target
-      const err = eePos.distanceTo(target);
-      // Adjust step size based on distance: move more when far, less when close
-      stepScale = Math.max(0.05, Math.min(0.9, err));
+      let eePos = ee.getWorldPosition(new THREE.Vector3());
 
       // Loop through joints backwards (from joint6 to joint1) --> how much should this joint rotate so the end-effector moves closer to the target
       for (let i = 5; i >= 0; i--) {
@@ -223,9 +217,7 @@ export class RobotAvatar {
         // Compute the "flattened" version of toTarget, lying completely in the joint's rotation plane.
         const vProj = toTarget.clone().sub(axis.clone().multiplyScalar(toTarget.dot(axis))); 
         // Calculate signed angle using atan2 (gives direction: + or -) --> angle that rotates uProj toward vProjaround the joint's axis --> dot(uProj, vProj) gives cos(theta), cross(uProj, vProj) gives a vector perpendicular to both, axis.dot(cross) gives the sign (direction) of the rotation, atan2(sin, cos) gives the signed angle in radians
-        const rawDelta = Math.atan2(axis.dot(new THREE.Vector3().crossVectors(uProj, vProj)), uProj.dot(vProj));
-        // Limit how much we rotate in one step (max 0.35 radians = ~20 degrees)
-        const delta = Math.max(-0.35, Math.min(0.35, rawDelta * stepScale));
+        const delta = Math.atan2(axis.dot(new THREE.Vector3().crossVectors(uProj, vProj)), uProj.dot(vProj));
 
         // Calculate new angle for this joint
         let newAngle = angles[i] + delta;

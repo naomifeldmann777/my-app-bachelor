@@ -17,8 +17,8 @@ export class ArcMesh {
         // Define an extra spacing gap so the arrow does not touch the start/end objects
         const gap = 0.1; 
 
-        // Create a black material that is not affected by lighting
-        const material = new THREE.MeshBasicMaterial({ color: 0x000000}); 
+        // Create standard material that is affected by lights
+        const material = new THREE.MeshStandardMaterial({ color: 0x000000}); 
 
         // Compute the vector pointing from start to end
         const direction = new THREE.Vector3().subVectors(end, start); 

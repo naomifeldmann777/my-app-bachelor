@@ -13,8 +13,8 @@ export class TransitionMesh {
         this.transition = transition; 
         // Create a box geometry with width, height, and depth in world units
         const geometry = new THREE.BoxGeometry(0.5, 1, 0.2); 
-        // Create a basic red material that is not affected by lighting
-        const material = new THREE.MeshBasicMaterial({color: 0xff0000}); 
+        // Create standard material that is affected by lights
+        const material = new THREE.MeshStandardMaterial({color: 0xff0000}); 
 
         // Combine geometry and material into a renderable mesh
         this.mesh = new THREE.Mesh(geometry, material); 

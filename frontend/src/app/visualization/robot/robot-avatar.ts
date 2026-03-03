@@ -40,7 +40,7 @@ export class RobotAvatar {
         (geometry) => {
           // Create a gray material for the robot parts
           const material = new THREE.MeshStandardMaterial({
-            color: 0xcccccc,      // Light gray color
+            color: 0x737270,      // Light gray color
             metalness: 0.1,       // Slightly metallic appearance
             roughness: 0.7,       // Somewhat rough surface
           });
@@ -67,7 +67,7 @@ export class RobotAvatar {
       // Store the loaded robot
       this.robot = robot as any;
       // Set robot position in 3D space (x, y, z)
-      robot.position.set(1.72, -6.18, -6.72);
+      robot.position.set(1.72, -3.78, -6.72);
       // Rotate robot 90 degrees around X axis
       robot.rotation.x = -Math.PI / 2;
       // Scale robot to be 20 times larger

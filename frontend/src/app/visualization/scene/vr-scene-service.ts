@@ -40,8 +40,14 @@ export class VrSceneService {
       0.1, // Near clip
       100 // Far clip
     );
-    this.camera.position.set(0, 1.6, 3); // Place at typical eye height
-    this.scene.add(this.camera); // Attach camera to scene
+    this.camera.position.set(0, 1.6, 0); // Place at typical eye height (local to rig)
+    
+    // Create camera rig (parent group) to position the VR user in the scene
+    // The VR headset controls the camera position relative to this rig
+    const cameraRig = new THREE.Group(); 
+    cameraRig.position.set(0, 0, 5); // Position the rig 5 units away from origin
+    cameraRig.add(this.camera); // Camera is child of rig
+    this.scene.add(cameraRig); // Add rig to scene
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true }); // Create WebGL renderer
     this.renderer.setSize(window.innerWidth, window.innerHeight); // Match window size
@@ -54,10 +60,10 @@ export class VrSceneService {
     this.controls.target.set(0, 0, 0); // Look at origin
     this.controls.update(); 
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8); // Ambient sky/ground light
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.8); // Ambient light for basic illumination
     hemi.position.set(0, 1, 0); // Position hemisphere light
     this.scene.add(hemi); // Add to scene
-    const dir = new THREE.DirectionalLight(0xffffff, 0.6); // Directional light for shading
+    const dir = new THREE.DirectionalLight(0xffffff, 1.5); // Directional light for stronger shadows and highlights
     dir.position.set(2, 3, 2); // Position directional light
     this.scene.add(dir); // Add to scene
 
@@ -175,9 +181,9 @@ export class VrSceneService {
       // Attach panel to camera (HUD)
       this.scene.add(group); 
       this.panelGroup = group; // Keep reference
-      group.position.set(0.95, -0.45, -1.4); // Position in view space
+      group.position.set(4, 5, -1.5); // Position in view space
       (group as any).rotation.x = -0.15; // Slight tilt for readability
-      group.scale.set(4, 4, 1); // Scale down
+      group.scale.set(2.5, 2.5, 1); // Scale down
       // Register clickable buttons for raycasting
       this.objsToTest.push(...buttons); 
     });

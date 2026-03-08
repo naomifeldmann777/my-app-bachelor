@@ -146,4 +146,68 @@ export class PetriNetEngine {
         // Indicate that the update was successful
         return true;
     }
+
+    // Creates a new place at the specified position and returns success status
+    public createPlace(x: number, y: number, z: number): boolean {
+        // Generate a new unique ID for the place (e.g., "p" followed by the number of existing places + 1)
+        const newId = `p${this.currentPetriNet.places.length + 1}`;
+        // Create a new Place object with default values and the specified position
+        const newPlace: Place = {
+            id: newId,
+            label: newId,
+            tokens: 0,
+            position: { x, y, z },
+            role: ''
+        };
+        // Add the new place to the Petri net's places array
+        this.currentPetriNet.places.push(newPlace);
+        // Indicate that the creation was successful
+        return true;
+    }
+
+    // Creates a new transition at the specified position and returns success status
+    public createTransition(x: number, y: number, z: number): boolean {
+        // Generate a new unique ID for the transition (e.g., "t" followed by the number of existing transitions + 1)
+        const newId = `t${this.currentPetriNet.transitions.length + 1}`;
+        // Create a new Transition object with default values and the specified position
+        const newTransition: Transition = {
+            id: newId,
+            label: newId,
+            position: { x, y, z },
+            capability: ''
+        };
+        // Add the new transition to the Petri net's transitions array
+        this.currentPetriNet.transitions.push(newTransition);
+        // Indicate that the creation was successful
+        return true;
+    }
+
+    // Creates a new arc between two elements and returns success status
+    public createArc(from: string, to: string): boolean {
+        // Validate that from element exists (either a place or transition)
+        const fromExists = this.currentPetriNet.places.some(p => p.id === from) || 
+                          this.currentPetriNet.transitions.some(t => t.id === from);
+        // Validate that to element exists (either a place or transition)
+        const toExists = this.currentPetriNet.places.some(p => p.id === to) || 
+                        this.currentPetriNet.transitions.some(t => t.id === to);
+        // If either the from or to element does not exist, arc creation fails
+        if (!fromExists || !toExists) return false;
+
+        // Check if arc already exists
+        if (this.currentPetriNet.arcs.some(a => a.from === from && a.to === to)) {
+            return false; // Arc already exists
+        }
+        // Create a new Arc object with a unique ID, the specified from/to elements and default weight of 1
+        const newId = `a${this.currentPetriNet.arcs.length + 1}`;
+        const newArc: Arc = {
+            id: newId,
+            from,
+            to,
+            weight: 1
+        };
+        // Add the new arc to the Petri net's arcs array
+        this.currentPetriNet.arcs.push(newArc);
+        // Indicate that the creation was successful
+        return true;
+    }
 }

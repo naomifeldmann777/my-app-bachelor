@@ -11,7 +11,11 @@ export class VrControlPanel {
     // Callback executed when a transition button is clicked
     onFire: (id: string) => void, 
     // Callback executed when the reset button is clicked
-    onReset: () => void 
+    onReset: () => void,
+    // Modeling callbacks
+    onCreatePlace: () => void,
+    onCreateTransition: () => void,
+    onConnectElements: () => void
   ): { group: THREE.Object3D; buttons: THREE.Object3D[] } { // Returns panel root and buttons
     
     
@@ -113,6 +117,91 @@ export class VrControlPanel {
     // Track button for raycasting so input code can set states
     buttons.push(resetBtn); 
 
+    // Modeling section subtitle
+    const modelingSubtitle = new (ThreeMeshUI as any).Block({
+      width: 0.72, // Align with title width for consistency
+      height: 0.12, // Reserve space for subtitle text
+      justifyContent: 'center', // Center subtitle vertically
+      textAlign: 'center', // Center subtitle text horizontally
+      padding: 0.005, // Small inner padding for subtitle block
+      margin: 0.01, // Small margin to separate from buttons
+      backgroundOpacity: 0 // Transparent background for subtitle block
+    });
+    modelingSubtitle.add(
+      new (ThreeMeshUI as any).Text({ 
+        content: 'Modeling', // Subtitle text for modeling section
+        fontSize: 0.07, // Font size slightly smaller than title but larger than button text
+        fontColor: new THREE.Color(0xffffff) // White text for subtitle
+      })
+    );
+    container.add(modelingSubtitle); // Add modeling subtitle to panel
+
+    // Create Place button
+    const createPlaceBtn = new (ThreeMeshUI as any).Block({
+      width: 0.6, // Button width
+      height: 0.15, // Button height
+      justifyContent: 'center', // Center text inside button
+      offset: 0.035, // Depth offset for pressed/hover animation
+      margin: 0.015, // Space around the button
+      borderRadius: 0.075 // Rounded corners for button background
+    });
+    createPlaceBtn.add(new (ThreeMeshUI as any).Text({ content: 'Create Place' })); // Button label
+    // Define and register the "selected" state for the Create Place button
+    createPlaceBtn.setupState({
+      state: 'selected',
+      attributes: idle.attributes,
+      onSet: () => onCreatePlace() // Call the provided callback when this button is clicked (state set to selected)
+    });
+    createPlaceBtn.setupState(hovered); // Register hovered state
+    createPlaceBtn.setupState(idle); // Register idle state
+    createPlaceBtn.setupState(disabled); // Register disabled state
+    container.add(createPlaceBtn); // Add button to panel
+    buttons.push(createPlaceBtn); // Track button for raycasting
+
+    // Create Transition button
+    const createTransitionBtn = new (ThreeMeshUI as any).Block({
+      width: 0.6, // Button width
+      height: 0.15, // Button height
+      justifyContent: 'center', // Center text inside button
+      offset: 0.035, // Depth offset for pressed/hover animation
+      margin: 0.015, // Space around the button
+      borderRadius: 0.075 // Rounded corners for button background
+    });
+    createTransitionBtn.add(new (ThreeMeshUI as any).Text({ content: 'Create Transition' })); // Button label
+    // Define and register the "selected" state for the Create Transition button
+    createTransitionBtn.setupState({
+      state: 'selected',
+      attributes: idle.attributes,
+      onSet: () => onCreateTransition() // Call the provided callback when this button is clicked (state set to selected)
+    });
+    createTransitionBtn.setupState(hovered); // Register hovered state
+    createTransitionBtn.setupState(idle); // Register idle state
+    createTransitionBtn.setupState(disabled); // Register disabled state
+    container.add(createTransitionBtn); // Add button to panel
+    buttons.push(createTransitionBtn); // Track button for raycasting
+
+    // Connect Elements button
+    const connectBtn = new (ThreeMeshUI as any).Block({
+      width: 0.6, // Button width
+      height: 0.15, // Button height
+      justifyContent: 'center', // Center text inside button
+      offset: 0.035, // Depth offset for pressed/hover animation
+      margin: 0.015, // Space around the button
+      borderRadius: 0.075 // Rounded corners for button background
+    });
+    connectBtn.add(new (ThreeMeshUI as any).Text({ content: 'Connect Elements' })); // Button label
+    // Define and register the "selected" state for the Connect Elements button
+    connectBtn.setupState({
+      state: 'selected',
+      attributes: idle.attributes,
+      onSet: () => onConnectElements() // Call the provided callback when this button is clicked (state set to selected)
+    });
+    connectBtn.setupState(hovered); // Register hovered state
+    connectBtn.setupState(idle); // Register idle state
+    connectBtn.setupState(disabled); // Register disabled state
+    container.add(connectBtn); // Add button to panel
+    buttons.push(connectBtn); // Track button for raycasting
+    
     // Subtitle block indicating fireabletransitions section
     const subtitleBlock = new (ThreeMeshUI as any).Block({
       width: 0.72, // Align with title width

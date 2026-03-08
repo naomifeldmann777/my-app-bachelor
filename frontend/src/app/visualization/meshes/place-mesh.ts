@@ -21,6 +21,8 @@ export class PlaceMesh {
             material = new THREE.MeshStandardMaterial({color:0x0000ff, side: THREE.DoubleSide}); 
         } else if (this.place.role === 'ee_state') { // If the place has role "ee_state", use yellow material 
             material = new THREE.MeshStandardMaterial({color:0xffff00, side: THREE.DoubleSide}); 
+        } else {
+            material = new THREE.MeshStandardMaterial({color: 0x808080, side: THREE.DoubleSide}); // Default material is grey
         }
         // Combine geometry and material into a renderable mesh
         this.mesh = new THREE.Mesh(geometry, material); 

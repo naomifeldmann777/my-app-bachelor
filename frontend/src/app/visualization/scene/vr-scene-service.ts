@@ -9,6 +9,7 @@ import { PetriApiService } from '../../api/petri-net-api-service';
 import { VrControlPanel } from '../ui/vr-control-panel'; 
 import { RobotAvatar } from '../robot/robot-avatar';
 import { DragManager } from '../../services/drag-manager';
+import { ModelingManager, ModelingMode } from '../../services/modeling-manager';
 
 @Injectable({ providedIn: 'root' }) // So that the service is available in the whole app
 export class VrSceneService {
@@ -27,6 +28,8 @@ export class VrSceneService {
   private panelGroup?: THREE.Object3D; // Root of the control panel UI
   private robotAvatar?: RobotAvatar; // Robot avatar instance for robot visualization
   private dragManager?: DragManager; // Drag manager for interactive element dragging
+  private modelingManager?: ModelingManager; // Modeling manager for creating/connecting elements
+  private draggables: THREE.Mesh[] = []; // Current draggable elements (places + transitions)
 
   constructor(private petriNetApi: PetriApiService) {} // Inject API client
 
@@ -78,6 +81,13 @@ export class VrSceneService {
     // Initialize drag manager service for interactive element dragging
     this.dragManager = new DragManager(this.camera, this.renderer, this.petriNetApi);
 
+    // Initialize modeling manager for creating elements
+    this.modelingManager = new ModelingManager(
+      this.scene,
+      this.petriNetApi,
+      () => this.loadCurrentState() // Reload net after changes
+    );
+
     // Load initial petri net state 
     this.loadCurrentState(); // Fetch backend state and build meshes
 
@@ -93,17 +103,60 @@ export class VrSceneService {
     window.addEventListener('pointermove', (event) => { // Update NDC mouse coords
       this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1; // Map X to [-1,1]
       this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1; // Map Y to [-1,1], invert Y
+      
+      // Update modeling preview in desktop mode
+      // Only update if we're in a modeling mode (not idle) and mouse coords are valid (ignore if pointer is outside window)
+      if (this.modelingManager?.getMode() !== ModelingMode.IDLE && !Number.isNaN(this.mouse.x)) {
+        // Set raycaster from camera through mouse position
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        // Update modeling preview based on raycaster 
+        this.modelingManager?.updatePreview(this.raycaster);
+      }
     });
     window.addEventListener('pointerdown', () => (this.selectState = true)); // Press/hold
-    window.addEventListener('pointerup', () => (this.selectState = false)); // Release
+    window.addEventListener('pointerup', () => {
+      // Check if we're hitting a UI button
+      // Only if mouse coords are valid (ignore if pointer is outside window)
+      if (!Number.isNaN(this.mouse.x)) {
+        // Set raycaster from camera through mouse position
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        // Check if we're hitting a UI button
+        const buttonHit = this.raycast(this.objsToTest);
+        const isHittingButton = buttonHit && (buttonHit.object as any).isUI;
+        // Only handle space clicks if not hitting a button to avoid conflicts between UI interaction and modeling interactions
+        if (!isHittingButton && this.modelingManager?.getMode() !== ModelingMode.IDLE) {
+          // Handle space click in modeling manager (create element or select for connection)
+          this.modelingManager?.handleSpaceClick(this.raycaster, this.draggables);
+        }
+      }
+      // Reset select state
+      this.selectState = false;
+    });
 
     // XR-Controller
     const controller = this.renderer.xr.getController(0); // First VR controller
     this.scene.add(controller); // Add to scene for matrix updates
+    // Event listener for trigger press
     controller.addEventListener('selectstart', () => {
       this.selectState = true; // Trigger pressed
-      this.dragManager?.startVRDrag(); // Start VR drag if hovering element
+      
+      // Check if we're hitting a UI button with the VR controller ray
+      const buttonHit = this.raycast(this.objsToTest);
+      // Determine if the hit object is a UI button
+      const isHittingButton = buttonHit && (buttonHit.object as any).isUI;
+      // Only handle space clicks if not hitting a button
+      if (!isHittingButton) {
+        // Check if in modeling mode - handle space clicks
+        if (this.modelingManager?.getMode() !== ModelingMode.IDLE) {
+          // handle space click in modeling manager (create element or select for connection)
+          this.modelingManager?.handleSpaceClick(this.raycaster, this.draggables);
+        } else {
+          // If not in modeling mode, start VR drag (if pointing at a draggable element) - the drag manager will check internally whether the hit element is draggable and handle accordingly
+          this.dragManager?.startVRDrag();
+        }
+      }
     });
+    // Event listener for trigger release
     controller.addEventListener('selectend', () => {
       this.selectState = false; // Trigger released
       this.dragManager?.endVRDrag(); // End VR drag
@@ -117,12 +170,29 @@ export class VrSceneService {
       ThreeMeshUI.update(); // Update the 3D UI layout and state
       this.controls.update(); // Update orbit controls
       this.robotAvatar?.update(delta); // Advance robot animation by 'delta' seconds (smooth, time-based)
+      
+      // Set VR raycaster once per frame (used by updateButtons, modeling preview, and drag manager)
+      if (this.renderer.xr.isPresenting) {
+        // Reset a matrix to the identity matrix (no rotation, no translation) and then extract only the rotation part from the controller's world transformation matrix
+        const tempMatrix = new THREE.Matrix4().identity().extractRotation(controller.matrixWorld);
+        // Set the ray origin (starting point) to the world position of the controller
+        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+        // Set the ray direction to point forward from the controller (negative z in local space) and apply the controller's rotation to it so it points in the direction the controller is facing
+        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+      }
+      
       this.updateButtons(); // Update UI button states (e.g., hover, disabled)
+      
+      // Update modeling preview in VR mode
+      // Only update if we're in a modeling mode (not idle) and in VR (ignore mouse movement in VR)
+      if (this.renderer.xr.isPresenting && this.modelingManager?.getMode() !== ModelingMode.IDLE) {
+        this.modelingManager?.updatePreview(this.raycaster);
+      }
       
       // Update VR drag interactions
       // Only update if in VR mode to avoid conflicts with desktop pointer events
       if (this.renderer.xr.isPresenting) {
-        this.dragManager?.updateVR(controller);
+        this.dragManager?.updateVR(this.raycaster); // Raycaster already set above for this frame
       }
       
       this.renderer.render(this.scene, this.camera); // Render the scene from the camera's perspective
@@ -157,6 +227,9 @@ export class VrSceneService {
     this.netGroup = new THREE.Group(); // Create fresh group
     this.scene.add(this.netGroup); // Attach to scene
     const { places, transitions, arcs } = PetriNetBuilder.buildNet(this.netGroup, petriNet); // Build places/transitions/arcs inside group
+    
+    // Collect draggables for modeling manager, store references to place and transition meshes
+    this.draggables = [...places.values(), ...transitions.values()];
     
     // Register interactive elements with the drag manager so it can handle dragging them in VR
     this.dragManager?.registerElements(places, transitions, arcs);
@@ -202,13 +275,16 @@ export class VrSceneService {
       const { group, buttons } = VrControlPanel.createControlPanel( // Create panel + buttons
         items,
         (id: string) => this.fireTransition(id), // Fire callback
-        () => this.resetSimulation() // Reset callback
+        () => this.resetSimulation(), // Reset callback
+        () => this.modelingManager?.setMode(ModelingMode.CREATE_PLACE), // Create place callback
+        () => this.modelingManager?.setMode(ModelingMode.CREATE_TRANSITION), // Create transition callback
+        () => this.modelingManager?.setMode(ModelingMode.CONNECT_ELEMENTS) // Connect elements callback
       );
 
       // Attach panel to camera (HUD)
       this.scene.add(group); 
       this.panelGroup = group; // Keep reference
-      group.position.set(4, 5, -1.5); // Position in view space
+      group.position.set(0, 0, -1.5); // Position in view space
       (group as any).rotation.x = -0.15; // Slight tilt for readability
       group.scale.set(2.5, 2.5, 1); // Scale down
       // Register clickable buttons for raycasting
@@ -237,21 +313,13 @@ export class VrSceneService {
         new THREE.Vector3(0, 0, -1) // Line points forward from the controller
       ]);
       const material = new THREE.LineBasicMaterial({ color: 0xff0000 }); // Red line material
-      const line = new THREE.Line(geometry, material); // CreateS the line mesh
+      const line = new THREE.Line(geometry, material); // Creates the line mesh
       line.name = 'ray'; // Names the line for reference/removal
       line.scale.z = 5; // Makes the line 5 units long (longer for better reach)
       controller.add(line); // Attach the line to the controller so it moves with it
 
-      if (controller) {
-        // Create a rotation matrix from the controller's world matrix (extracts orientation only, removes translation)
-        const tempMatrix = new THREE.Matrix4().identity().extractRotation(controller.matrixWorld); 
-        // Set the ray's origin to the controller's current world position
-        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld); 
-        // Set the ray's direction to point forward (-Z) in the controller's local space, transformed to world space
-        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix); 
-        // Perform raycasting against all interactive UI objects and get the closest intersection
-        intersect = this.raycast(this.objsToTest); 
-      }
+      // Raycaster is already set in render loop - just perform intersection test
+      intersect = this.raycast(this.objsToTest);
 
     } else if (!Number.isNaN(this.mouse.x) && !Number.isNaN(this.mouse.y)) { // Desktop mode: cast from camera
       this.raycaster.setFromCamera(this.mouse, this.camera); // Build ray from mouse NDC

@@ -236,16 +236,10 @@ export class DragManager {
         arcGroup.lookAt(end);
     }
 
-    // VR update loop to be called on each frame when in VR mode, with the controller group for raycasting
-    updateVR(controller: THREE.Group) {
-        // Create a temporary matrix that will hold only the rotation of the controller (to orient the ray in the same direction the VR controller is pointing)
-        const tempMatrix = new THREE.Matrix4();
-        // Reset the matrix to the identity matrix (no rotation, no translation) and then extract only the rotation part from the controller's world transformation matrix
-        tempMatrix.identity().extractRotation(controller.matrixWorld);
-        // Set the ray origin (starting point) to the world position of the controller
-        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-        // Set the ray direction to point forward from the controller (negative z in local space) and apply the controller's rotation to it so it points in the direction the controller is facing
-        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+    // VR update loop to be called on each frame when in VR mode
+    // Raycaster is passed in from VrSceneService (already set once per frame in render loop)
+    updateVR(raycaster: THREE.Raycaster) {
+        this.raycaster = raycaster; // Store so startVRDrag() can use it too
         
         // If we are currently dragging an object in VR, update its position based on where the ray intersects the drag plane
         if (this.vrDragging && this.draggedObject) {

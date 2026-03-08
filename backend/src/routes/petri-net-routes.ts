@@ -24,5 +24,11 @@ router.post('/reset', controller.reset);
 router.patch('/place/:id/position', controller.updatePlacePosition);
 // Route to update transition position
 router.patch('/transition/:id/position', controller.updateTransitionPosition);
+// Route to create place
+router.post('/place', controller.createPlace);
+// Route to create transition
+router.post('/transition', controller.createTransition);
+// Route to create arc
+router.post('/arc', controller.createArc);
 
 export default router; 

@@ -94,4 +94,37 @@ export class PetriNetController {
         // Return whether the update was successful and the updated Petri net state
         res.json({ success, state: this.engine.getState() });
     }
+
+    // POST /api/petri/place
+    // Creates a new place at the specified position
+    public createPlace = (req: Request<{}, any, {x: number, y: number, z: number}>, res: Response) => {
+        // Get the new place position from the request body
+        const { x, y, z } = req.body;
+        // Create the new place in the engine and get whether it was successful
+        const success = this.engine.createPlace(x, y, z);
+        // Return whether the creation was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
+
+    // POST /api/petri/transition
+    // Creates a new transition at the specified position
+    public createTransition = (req: Request<{}, any, {x: number, y: number, z: number}>, res: Response) => {
+        // Get the new transition position from the request body
+        const { x, y, z } = req.body;
+        // Create the new transition in the engine and get whether it was successful
+        const success = this.engine.createTransition(x, y, z);
+        // Return whether the creation was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
+
+    // POST /api/petri/arc
+    // Creates a new arc between two elements
+    public createArc = (req: Request<{}, any, {from: string, to: string}>, res: Response) => {
+        // Get the IDs of the from/to elements from the request body
+        const { from, to } = req.body;
+        // Create the new arc in the engine and get whether it was successful
+        const success = this.engine.createArc(from, to);
+        // Return whether the creation was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
 }

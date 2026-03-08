@@ -24,7 +24,6 @@ export class PetriApiService {
         return this.http.post<PetriNetModel>(`${this.baseUrl}/reset`, {})
     }
 
-
     // Requests all currently fireable transitions
     // GET request to backend endpoint
     getFireableTransitions(): Observable<TransitionModel[]> {
@@ -53,5 +52,23 @@ export class PetriApiService {
     // PATCH request to backend endpoint with transition ID in URL and new position in body
     updateTransitionPosition(id: string, x: number, y: number, z: number): Observable<{success: boolean, state: PetriNetModel}> {
         return this.http.patch<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/transition/${id}/position`, {x, y, z});
+    }
+
+    // Creates a new place at specified position
+    // POST request to backend endpoint with position in body
+    createPlace(x: number, y: number, z: number): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.post<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/place`, {x, y, z});
+    }
+
+    // Creates a new transition at specified position
+    // POST request to backend endpoint with position in body
+    createTransition(x: number, y: number, z: number): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.post<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/transition`, {x, y, z});
+    }
+
+    // Creates a new arc between two elements
+    // POST request to backend endpoint with from/to IDs in body
+    createArc(from: string, to: string): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.post<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/arc`, {from, to});
     }
 }

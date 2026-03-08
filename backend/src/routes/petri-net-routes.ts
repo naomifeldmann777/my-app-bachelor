@@ -19,6 +19,10 @@ router.get('/isFireable/:id', controller.isFireableById);
 // Route to fire transition
 router.post('/fireTransition/:id', controller.fireTransitionById); 
 // Route to reset Petri net
-router.post('/reset', controller.reset)
+router.post('/reset', controller.reset);
+// Route to update place position
+router.patch('/place/:id/position', controller.updatePlacePosition);
+// Route to update transition position
+router.patch('/transition/:id/position', controller.updateTransitionPosition);
 
 export default router; 

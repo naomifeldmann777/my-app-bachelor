@@ -122,4 +122,28 @@ export class PetriNetEngine {
         // Indicate that the transition was fired successfully
         return true;
     }
+
+    // Updates the position of a place and returns success status
+    public updatePlacePosition(id: string, x: number, y: number, z: number): boolean {
+        // Find the place with the given ID
+        const place = this.currentPetriNet.places.find(p => p.id === id);
+        // If no such place exists, return false
+        if (!place) return false;
+        // Update the place's position with the new coordinates
+        place.position = { x, y, z };
+        // Indicate that the update was successful
+        return true;
+    }
+
+    // Updates the position of a transition and returns success status
+    public updateTransitionPosition(id: string, x: number, y: number, z: number): boolean {
+        // Find the transition with the given ID
+        const transition = this.currentPetriNet.transitions.find(t => t.id === id);
+        // If no such transition exists, return false
+        if (!transition) return false;
+        // Update the transition's position with the new coordinates
+        transition.position = { x, y, z };
+        // Indicate that the update was successful
+        return true;
+    }
 }

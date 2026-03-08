@@ -8,6 +8,7 @@ import { PetriNetModel } from '../../domain/petri-net-model';
 import { PetriApiService } from '../../api/petri-net-api-service'; 
 import { VrControlPanel } from '../ui/vr-control-panel'; 
 import { RobotAvatar } from '../robot/robot-avatar';
+import { DragManager } from '../../services/drag-manager';
 
 @Injectable({ providedIn: 'root' }) // So that the service is available in the whole app
 export class VrSceneService {
@@ -25,6 +26,7 @@ export class VrSceneService {
   private netGroup?: THREE.Group; // Group holding current Petri net meshes
   private panelGroup?: THREE.Object3D; // Root of the control panel UI
   private robotAvatar?: RobotAvatar; // Robot avatar instance for robot visualization
+  private dragManager?: DragManager; // Drag manager for interactive element dragging
 
   constructor(private petriNetApi: PetriApiService) {} // Inject API client
 
@@ -52,6 +54,12 @@ export class VrSceneService {
     this.renderer = new THREE.WebGLRenderer({ antialias: true }); // Create WebGL renderer
     this.renderer.setSize(window.innerWidth, window.innerHeight); // Match window size
     this.renderer.xr.enabled = true; // Enable WebXR for VR
+    
+    // Configure raycaster for better hit detection
+    this.raycaster.near = 0; // Start raycasting from the controller position
+    this.raycaster.far = Infinity; // No maximum distance for raycasting
+    this.raycaster.params.Mesh = { threshold: 0.1 }; // Allow some tolerance for hovering over meshes
+    this.raycaster.params.Line = { threshold: 0.1 }; // Allow some tolerance for hovering over lines (arcs)
 
     container?.appendChild(this.renderer.domElement); // Add canvas to DOM
     document.body.appendChild(VRButton.createButton(this.renderer)); // Add VR entry button
@@ -67,6 +75,9 @@ export class VrSceneService {
     dir.position.set(2, 3, 2); // Position directional light
     this.scene.add(dir); // Add to scene
 
+    // Initialize drag manager service for interactive element dragging
+    this.dragManager = new DragManager(this.camera, this.renderer, this.petriNetApi);
+
     // Load initial petri net state 
     this.loadCurrentState(); // Fetch backend state and build meshes
 
@@ -78,7 +89,7 @@ export class VrSceneService {
     // Load robot with initial pose with end-effector pointing down
     this.robotAvatar.load().then(() => {this.robotAvatar!.setJoints([0,0,-1.57,0,1.57,0])});
 
-    // Desktop-Events
+    // Desktop-Events for UI panel (drag manager handles its own events)
     window.addEventListener('pointermove', (event) => { // Update NDC mouse coords
       this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1; // Map X to [-1,1]
       this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1; // Map Y to [-1,1], invert Y
@@ -89,8 +100,14 @@ export class VrSceneService {
     // XR-Controller
     const controller = this.renderer.xr.getController(0); // First VR controller
     this.scene.add(controller); // Add to scene for matrix updates
-    controller.addEventListener('selectstart', () => (this.selectState = true)); // Trigger pressed
-    controller.addEventListener('selectend', () => (this.selectState = false)); // Trigger released
+    controller.addEventListener('selectstart', () => {
+      this.selectState = true; // Trigger pressed
+      this.dragManager?.startVRDrag(); // Start VR drag if hovering element
+    });
+    controller.addEventListener('selectend', () => {
+      this.selectState = false; // Trigger released
+      this.dragManager?.endVRDrag(); // End VR drag
+    });
 
     // Create a THREE.Clock instance to measure the time between frames --> to calculate 'delta' (time elapsed since the last frame) --> ensures smooth animation
     const clock = new THREE.Clock();
@@ -101,6 +118,13 @@ export class VrSceneService {
       this.controls.update(); // Update orbit controls
       this.robotAvatar?.update(delta); // Advance robot animation by 'delta' seconds (smooth, time-based)
       this.updateButtons(); // Update UI button states (e.g., hover, disabled)
+      
+      // Update VR drag interactions
+      // Only update if in VR mode to avoid conflicts with desktop pointer events
+      if (this.renderer.xr.isPresenting) {
+        this.dragManager?.updateVR(controller);
+      }
+      
       this.renderer.render(this.scene, this.camera); // Render the scene from the camera's perspective
     });
 
@@ -132,7 +156,10 @@ export class VrSceneService {
     // Create new group and build net inside
     this.netGroup = new THREE.Group(); // Create fresh group
     this.scene.add(this.netGroup); // Attach to scene
-    PetriNetBuilder.buildNet(this.netGroup, petriNet); // Build places/transitions/arcs inside group
+    const { places, transitions, arcs } = PetriNetBuilder.buildNet(this.netGroup, petriNet); // Build places/transitions/arcs inside group
+    
+    // Register interactive elements with the drag manager so it can handle dragging them in VR
+    this.dragManager?.registerElements(places, transitions, arcs);
   }
 
   // Free GPU resources in a group
@@ -212,7 +239,7 @@ export class VrSceneService {
       const material = new THREE.LineBasicMaterial({ color: 0xff0000 }); // Red line material
       const line = new THREE.Line(geometry, material); // CreateS the line mesh
       line.name = 'ray'; // Names the line for reference/removal
-      line.scale.z = 5; // Makes the line 5 units long (visible in VR)
+      line.scale.z = 5; // Makes the line 5 units long (longer for better reach)
       controller.add(line); // Attach the line to the controller so it moves with it
 
       if (controller) {

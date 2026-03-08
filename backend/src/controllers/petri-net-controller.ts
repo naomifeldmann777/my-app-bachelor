@@ -68,4 +68,30 @@ export class PetriNetController {
             state: this.engine.getState()
         }); 
     }
+
+    // PATCH /api/petri/place/:id/position
+    // Updates the position of a place
+    public updatePlacePosition = (req: Request<{id: string}, any, {x: number, y: number, z: number}>, res: Response) => {
+        // Get the place ID from the URL parameters
+        const { id } = req.params;
+        // Get the new position from the request body
+        const { x, y, z } = req.body;
+        // Update the place position in the engine and get whether it was successful
+        const success = this.engine.updatePlacePosition(id, x, y, z);
+        // Return whether the update was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
+
+    // PATCH /api/petri/transition/:id/position
+    // Updates the position of a transition
+    public updateTransitionPosition = (req: Request<{id: string}, any, {x: number, y: number, z: number}>, res: Response) => {
+        // Get the transition ID from the URL parameters
+        const { id } = req.params;
+        // Get the new position from the request body
+        const { x, y, z } = req.body;
+        // Update the transition position in the engine and get whether it was successful
+        const success = this.engine.updateTransitionPosition(id, x, y, z);
+        // Return whether the update was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
 }

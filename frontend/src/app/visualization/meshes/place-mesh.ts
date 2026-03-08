@@ -16,11 +16,11 @@ export class PlaceMesh {
         // Create standard material that is affected by lights
         let material; 
         if (this.place.role === 'ee_position') { // If the place has role "ee_position", use green material 
-            material = new THREE.MeshStandardMaterial({color: 0x00ff00}); 
+            material = new THREE.MeshStandardMaterial({color: 0x00ff00, side: THREE.DoubleSide}); // Render both sides so the mesh stays visible and raycastable from all angles during VR dragging
         } else if (this.place.role === 'object_state') { // If the place has role "object_state", use blue material 
-            material = new THREE.MeshStandardMaterial({color:0x0000ff}); 
+            material = new THREE.MeshStandardMaterial({color:0x0000ff, side: THREE.DoubleSide}); 
         } else if (this.place.role === 'ee_state') { // If the place has role "ee_state", use yellow material 
-            material = new THREE.MeshStandardMaterial({color:0xffff00}); 
+            material = new THREE.MeshStandardMaterial({color:0xffff00, side: THREE.DoubleSide}); 
         }
         // Combine geometry and material into a renderable mesh
         this.mesh = new THREE.Mesh(geometry, material); 
@@ -31,6 +31,13 @@ export class PlaceMesh {
             this.place.position.z
         ); 
     
+        // Store metadata for drag interactions
+        this.mesh.userData = {
+            type: 'place',
+            id: this.place.id,
+            placeData: this.place
+        };
+
         // Create a text label sprite using the place label
         const label = this.createText(this.place.label);
         // Position the label slightly below the mesh

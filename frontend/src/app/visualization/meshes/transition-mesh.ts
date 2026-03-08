@@ -14,7 +14,7 @@ export class TransitionMesh {
         // Create a box geometry with width, height, and depth in world units
         const geometry = new THREE.BoxGeometry(0.5, 1, 0.2); 
         // Create standard material that is affected by lights
-        const material = new THREE.MeshStandardMaterial({color: 0xff0000}); 
+        const material = new THREE.MeshStandardMaterial({color: 0xff0000, side: THREE.DoubleSide}); // Render both sides so the mesh stays visible and raycastable from all angles during VR dragging
 
         // Combine geometry and material into a renderable mesh
         this.mesh = new THREE.Mesh(geometry, material); 
@@ -24,6 +24,13 @@ export class TransitionMesh {
             this.transition.position.y, 
             this.transition.position.z
         ); 
+
+        // Store metadata for drag interactions
+        this.mesh.userData = {
+            type: 'transition',
+            id: this.transition.id,
+            transitionData: this.transition
+        };
 
         // Create a text label sprite using the transition label
         const label = this.createText(this.transition.label);

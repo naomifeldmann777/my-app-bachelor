@@ -8,11 +8,18 @@ import { ArcMesh } from './arc-mesh';
 export class PetriNetBuilder {
 
     // Define a static method that builds the full Petri net into a given scene
-    static buildNet(container: THREE.Object3D, petriNet: PetriNetModel) {
+    // Returns maps of places, transitions, and arcs for drag interactions
+    static buildNet(container: THREE.Object3D, petriNet: PetriNetModel): {
+        places: Map<string, THREE.Mesh>,
+        transitions: Map<string, THREE.Mesh>,
+        arcs: Map<string, {mesh: THREE.Group, fromId: string, toId: string}>
+    } {
         // Create a map to store place meshes by their place ID
         const placeMap = new Map<string, THREE.Mesh>();
         // Create a map to store transition meshes by their transition ID 
         const transitionMap = new Map<string, THREE.Mesh>();
+        // Create a map to store arc groups with metadata
+        const arcMap = new Map<string, {mesh: THREE.Group, fromId: string, toId: string}>();
 
 
         // Iterate over all places defined in the Petri net model
@@ -36,7 +43,7 @@ export class PetriNetBuilder {
         });
 
         // Iterate over all arcs defined in the Petri net model
-        petriNet.arcs.forEach (arc => {
+        petriNet.arcs.forEach ((arc) => {
             // Try to find a place mesh whose ID matches the arc's "from" field
             const fromPlace = placeMap.get(arc.from);
 
@@ -50,7 +57,24 @@ export class PetriNetBuilder {
             const arcMesh = new ArcMesh(arc, fromMesh!.position, toMesh!.position, startType); 
             // Add the arc mesh to the container (scene or group)
             container.add(arcMesh.mesh);
+            
+            // Store arc metadata for drag updates
+            arcMesh.mesh.userData = {
+                // Store the ID of the arc's source object for potential use in drag interactions
+                fromId: arc.from,
+                // Store the ID of the arc's target object for potential use in drag interactions
+                toId: arc.to,
+                // Store the type of the arc's source object (place or transition) for potential use in drag interactions
+                startType: startType
+            };
+            arcMap.set(arc.id, {
+                // Store the arc's Three.js mesh along with its source and target IDs for later reference during interactions
+                mesh: arcMesh.mesh,
+                fromId: arc.from,
+                toId: arc.to
+            });
         }); 
+        // Return the maps of place meshes, transition meshes, and arc metadata for use in interaction handling
+        return { places: placeMap, transitions: transitionMap, arcs: arcMap };
     }
-    
 }

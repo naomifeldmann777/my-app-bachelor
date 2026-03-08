@@ -42,4 +42,16 @@ export class PetriApiService {
     fireTransition(id: string): Observable<{fired: boolean, state: PetriNetModel;}> {
         return this.http.post <{fired: boolean, state: PetriNetModel;}>(`${this.baseUrl}/fireTransition/${id}`, {})
     }
+
+    // Updates the position of a place
+    // PATCH request to backend endpoint with place ID in URL and new position in body
+    updatePlacePosition(id: string, x: number, y: number, z: number): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.patch<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/place/${id}/position`, {x, y, z});
+    }
+
+    // Updates the position of a transition
+    // PATCH request to backend endpoint with transition ID in URL and new position in body
+    updateTransitionPosition(id: string, x: number, y: number, z: number): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.patch<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/transition/${id}/position`, {x, y, z});
+    }
 }

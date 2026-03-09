@@ -6,7 +6,8 @@ export enum ModelingMode {
     IDLE = 'IDLE', // Default mode - no modeling action active
     CREATE_PLACE = 'CREATE_PLACE', // User clicked "Create Place" button - waiting for position click
     CREATE_TRANSITION = 'CREATE_TRANSITION', // User clicked "Create Transition" button - waiting for position click
-    CONNECT_ELEMENTS = 'CONNECT_ELEMENTS' // User clicked "Connect Elements" button - waiting for 2 element selections
+    CONNECT_ELEMENTS = 'CONNECT_ELEMENTS', // User clicked "Connect Elements" button - waiting for 2 element selections
+    DELETE = 'DELETE' // User clicked "Delete Element" button - next click removes the hit element (and connected arcs)
 }
 
 // Manages interactive modeling of Petri net elements
@@ -17,21 +18,27 @@ export class ModelingManager {
     private api: PetriApiService; // API service for backend communication
     private onModelChanged: () => void; // Callback function to reload net after creating elements
     private previewMesh?: THREE.Mesh; // Preview indicator (wireframe) showing where element will be created
+    private hoverMesh: THREE.Mesh | null = null; // Mesh currently highlighted by hover (any mode that targets elements)
+    private hoverOriginalColor = new THREE.Color(); // Original color saved before the hover highlight was applied
+    private onModeChange?: (mode: ModelingMode) => void; // Optional callback fired whenever the mode changes
 
     constructor(
         scene: THREE.Scene, // Scene where preview mesh will be added
         api: PetriApiService, // API service for creating places/transitions/arcs
-        onModelChanged: () => void // Callback to trigger net reload after creation
+        onModelChanged: () => void, // Callback to trigger net reload after creation
+        onModeChange?: (mode: ModelingMode) => void // Optional callback to notify when mode changes (used to enable/disable drag manager during modeling)
     ) {
         this.scene = scene; // Store scene reference
         this.api = api; // Store API service reference
         this.onModelChanged = onModelChanged; // Store callback reference
+        this.onModeChange = onModeChange; // Store mode-change callback reference
     }
 
     // Set the current modeling mode and handle preview mesh accordingly
     setMode(mode: ModelingMode) {
         this.mode = mode; // Update current mode
         this.selectedElements = []; // Clear any previously selected elements when changing mode
+        this.onModeChange?.(mode); // Notify listener to enable/disable drag
         
         // Remove old preview
         if (this.previewMesh) { // Check if preview mesh exists
@@ -71,14 +78,18 @@ export class ModelingManager {
     }
 
     // Handle click/trigger in space (VR ray or desktop mouse)
-    handleSpaceClick(raycaster: THREE.Raycaster, draggables: THREE.Mesh[]) {
+    // draggables: place and transition meshes (used for connect + delete)
+    // arcMeshes: arc shaft/head child meshes (used only for edit + delete)
+    handleSpaceClick(raycaster: THREE.Raycaster, draggables: THREE.Mesh[], arcMeshes: THREE.Mesh[] = []) {
         if (this.mode === ModelingMode.IDLE) return; // If no mode active, do nothing
         if (this.mode === ModelingMode.CREATE_PLACE) { // If in place creation mode
             this.createPlaceAtRay(); // Create place at ray position
         } else if (this.mode === ModelingMode.CREATE_TRANSITION) { // If in transition creation mode
             this.createTransitionAtRay(); // Create transition at ray position
         } else if (this.mode === ModelingMode.CONNECT_ELEMENTS) { // If in connect mode
-            this.selectElementForConnection(raycaster, draggables); // Select elements to connect
+            this.selectElementForConnection(raycaster, draggables); // Select elements to connect (arcs excluded intentionally)
+        } else if (this.mode === ModelingMode.DELETE) { // If in delete mode
+            this.deleteElementAtRay(raycaster, [...draggables, ...arcMeshes]); // Delete the element under the ray (places, transitions, and arcs)
         }
     }
 
@@ -125,6 +136,49 @@ export class ModelingManager {
         // If 2 elements selected, create arc
         if (this.selectedElements.length === 2) { // If we now have 2 elements selected
             this.createArc(this.selectedElements[0], this.selectedElements[1]); // Create arc between them
+        }
+    }
+
+    // Highlight the element under the ray with the given color (called every frame in certain modes to show hover effect)
+    updateHover(raycaster: THREE.Raycaster, targets: THREE.Mesh[], highlightColor: THREE.ColorRepresentation) {
+        const hit = raycaster.intersectObjects(targets, false)[0]?.object as THREE.Mesh | undefined; // Get the first hit mesh from raycast against target meshes (places, transitions, arcs)
+        // Restore color of previously highlighted mesh if the ray moved off it
+        if (this.hoverMesh && this.hoverMesh !== hit) {
+            (this.hoverMesh.material as THREE.MeshStandardMaterial).color.copy(this.hoverOriginalColor);
+            this.hoverMesh = null;
+        }
+        // Apply highlight color to the newly hovered mesh
+        if (hit && hit !== this.hoverMesh) {
+            this.hoverOriginalColor.copy((hit.material as THREE.MeshStandardMaterial).color); // Save original color
+            (hit.material as THREE.MeshStandardMaterial).color.set(highlightColor); // Apply highlight color
+            this.hoverMesh = hit; // Store reference to currently highlighted mesh
+        }
+    }
+
+    // Delete the element hit by the ray (place, transition, or arc)
+    // If a place or transition is deleted, the backend automatically removes connected arcs
+    private deleteElementAtRay(raycaster: THREE.Raycaster, draggables: THREE.Mesh[]) {
+        const intersects = raycaster.intersectObjects(draggables, false); // Check if ray hits any element
+        if (intersects.length === 0) return; // Nothing hit, do nothing
+        const hitMesh = intersects[0].object as THREE.Mesh; // Get the closest hit mesh
+        const id: string = hitMesh.userData['id']; // Read element ID from mesh metadata
+        const type: string = hitMesh.userData['type']; // Read element type ('place', 'transition', 'arc')
+
+        if (type === 'place') { // Delete place (backend also removes connected arcs)
+            this.api.deletePlace(id).subscribe(() => {
+                this.onModelChanged(); // Rebuild scene to reflect deletion
+                this.setMode(ModelingMode.IDLE); // Return to idle after deletion
+            });
+        } else if (type === 'transition') { // Delete transition (backend also removes connected arcs)
+            this.api.deleteTransition(id).subscribe(() => {
+                this.onModelChanged(); // Rebuild scene to reflect deletion
+                this.setMode(ModelingMode.IDLE); // Return to idle after deletion
+            });
+        } else if (type === 'arc') { // Delete just the arc
+            this.api.deleteArc(id).subscribe(() => {
+                this.onModelChanged(); // Rebuild scene to reflect deletion
+                this.setMode(ModelingMode.IDLE); // Return to idle after deletion
+            });
         }
     }
 

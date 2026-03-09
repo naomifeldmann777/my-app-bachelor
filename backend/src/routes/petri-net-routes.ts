@@ -30,5 +30,11 @@ router.post('/place', controller.createPlace);
 router.post('/transition', controller.createTransition);
 // Route to create arc
 router.post('/arc', controller.createArc);
+// Route to delete place (also removes connected arcs)
+router.delete('/place/:id', controller.deletePlace);
+// Route to delete transition (also removes connected arcs)
+router.delete('/transition/:id', controller.deleteTransition);
+// Route to delete arc
+router.delete('/arc/:id', controller.deleteArc);
 
 export default router; 

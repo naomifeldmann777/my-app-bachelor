@@ -182,6 +182,40 @@ export class PetriNetEngine {
         return true;
     }
 
+    // Deletes a place by ID and removes all arcs connected to it
+    public deletePlace(id: string): boolean {
+        // Check if place exists
+        const index = this.currentPetriNet.places.findIndex(p => p.id === id);
+        if (index === -1) return false;
+        // Remove the place (remove 1 element at the found index)
+        this.currentPetriNet.places.splice(index, 1);
+        // Remove all arcs connected to this place (either as source or target)
+        this.currentPetriNet.arcs = this.currentPetriNet.arcs.filter(a => a.from !== id && a.to !== id);
+        return true;
+    }
+
+    // Deletes a transition by ID and removes all arcs connected to it
+    public deleteTransition(id: string): boolean {
+        // Check if transition exists
+        const index = this.currentPetriNet.transitions.findIndex(t => t.id === id);
+        if (index === -1) return false;
+        // Remove the transition (remove 1 element at the found index)
+        this.currentPetriNet.transitions.splice(index, 1);
+        // Remove all arcs connected to this transition (either as source or target)
+        this.currentPetriNet.arcs = this.currentPetriNet.arcs.filter(a => a.from !== id && a.to !== id);
+        return true;
+    }
+
+    // Deletes a single arc by ID
+    public deleteArc(id: string): boolean {
+        // Check if arc exists
+        const index = this.currentPetriNet.arcs.findIndex(a => a.id === id);
+        if (index === -1) return false;
+        // Remove the arc (remove 1 element at the found index)
+        this.currentPetriNet.arcs.splice(index, 1);
+        return true;
+    }
+
     // Creates a new arc between two elements and returns success status
     public createArc(from: string, to: string): boolean {
         // Validate that from element exists (either a place or transition)

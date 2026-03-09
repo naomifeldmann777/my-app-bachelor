@@ -15,7 +15,8 @@ export class VrControlPanel {
     // Modeling callbacks
     onCreatePlace: () => void,
     onCreateTransition: () => void,
-    onConnectElements: () => void
+    onConnectElements: () => void,
+    onDeleteElement: () => void
   ): { group: THREE.Object3D; buttons: THREE.Object3D[] } { // Returns panel root and buttons
     
     
@@ -201,8 +202,30 @@ export class VrControlPanel {
     connectBtn.setupState(disabled); // Register disabled state
     container.add(connectBtn); // Add button to panel
     buttons.push(connectBtn); // Track button for raycasting
+
+    // Delete Element button (red background to signal destructive action)
+    const deleteBtn = new (ThreeMeshUI as any).Block({
+      width: 0.6, // Button width
+      height: 0.15, // Button height
+      justifyContent: 'center', // Center text inside button
+      offset: 0.035, // Depth offset for pressed/hover animation
+      margin: 0.015, // Space around the button
+      borderRadius: 0.075 // Rounded corners for button background
+    });
+    deleteBtn.add(new (ThreeMeshUI as any).Text({ content: 'Delete Element' })); // Button label
+    // Define and register the "selected" state for the Delete button
+    deleteBtn.setupState({
+      state: 'selected',
+      attributes: idle.attributes,
+      onSet: () => onDeleteElement() // Call the provided callback when this button is clicked
+    });
+    deleteBtn.setupState(hovered); // Register hovered state
+    deleteBtn.setupState(idle); // Register idle state
+    deleteBtn.setupState(disabled); // Register disabled state
+    container.add(deleteBtn); // Add button to panel
+    buttons.push(deleteBtn); // Track button for raycasting
     
-    // Subtitle block indicating fireabletransitions section
+    // Subtitle block indicating the section for firing transitions
     const subtitleBlock = new (ThreeMeshUI as any).Block({
       width: 0.72, // Align with title width
       height: 0.12, // Reserve space for subtitle
@@ -236,15 +259,36 @@ export class VrControlPanel {
       const btn = new (ThreeMeshUI as any).Block(buttonOptions); // Button block
       btn.add(new (ThreeMeshUI as any).Text({ content: t.label })); // Button text with transition label
 
+      // Red idle state to distinguish fire buttons from modeling buttons
+      const fireIdle = {
+        state: 'idle',
+        attributes: {
+          offset: 0.025,
+          backgroundColor: new THREE.Color(0x8b1a1a), // Dark red background
+          backgroundOpacity: 0.7,
+          fontColor: new THREE.Color(0xffffff)
+        }
+      };
+      // Brighter red on hover
+      const fireHovered = {
+        state: 'hovered',
+        attributes: {
+          offset: 0.025,
+          backgroundColor: new THREE.Color(0xcc2222), // Brighter red on hover
+          backgroundOpacity: 0.9,
+          fontColor: new THREE.Color(0xffffff)
+        }
+      };
+
       // Define and register the "selected" state for the transition button
       btn.setupState({
         state: 'selected', 
-        attributes: idle.attributes, 
+        attributes: fireIdle.attributes, 
         onSet: () => onFire(t.id) // Invoke fire callback with transition id
       });
       // Register hovered, idle and disabled states
-      btn.setupState(hovered); 
-      btn.setupState(idle); 
+      btn.setupState(fireHovered);
+      btn.setupState(fireIdle);
       btn.setupState(disabled);
 
       // Add button to the panel

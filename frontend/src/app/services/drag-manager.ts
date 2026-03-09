@@ -28,6 +28,8 @@ export class DragManager {
     
     // Draggable elements (places and transitions)
     private draggables: THREE.Mesh[] = [];
+    // Whether drag (and its hover effect) is currently active – false in any non-IDLE modeling mode so that modeling hover effects can take precedence without color conflicts
+    private enabled = true;
 
     constructor(
         // References needed for raycasting, event handling, and API calls
@@ -45,6 +47,18 @@ export class DragManager {
         this.raycaster.far = Infinity; // No maximum distance for raycasting
         this.raycaster.params.Mesh = { threshold: 0.1 }; // Allow some tolerance for hovering over meshes
         this.raycaster.params.Line = { threshold: 0.1 }; // Allow some tolerance for hovering over lines (arcs)
+    }
+
+    // Enable or disable dragging and drag hover effects (disabled in all non-IDLE modeling modes)
+    setEnabled(enabled: boolean) {
+        this.enabled = enabled;
+        if (this.dragControls) {
+            this.dragControls.enabled = enabled; // DragControls respects this flag for all events
+        }
+        if (!enabled) {
+            // Clear any active VR hover so the previous mesh color is restored immediately
+            this.applyVRHover(undefined);
+        }
     }
 
     // Register draggable elements and arcs after petri net is built
@@ -256,13 +270,15 @@ export class DragManager {
                 this.updateConnectedArcs(this.draggedObject);
             }
         } else {
-            // If we are notdragging an object, we instead perform hover detection
+            // If we are not dragging an object, we instead perform hover detection (only in IDLE mode)
             // Perform raycasting against all draggable objects (places and transitions)
             // intersectObjects returns an array sorted by distance from the ray origin
             // The first element [0] is the closest object the controller is pointing at
             // Safely access the first intersected object (if it exists)
             // Optional chaining (?.) prevents errors if there are no intersections
-            this.applyVRHover(this.raycaster.intersectObjects(this.draggables, false)[0]?.object as THREE.Mesh);
+            if (this.enabled) {
+                this.applyVRHover(this.raycaster.intersectObjects(this.draggables, false)[0]?.object as THREE.Mesh);
+            }
         }
     }
 

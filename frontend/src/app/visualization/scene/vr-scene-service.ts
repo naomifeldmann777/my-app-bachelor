@@ -30,6 +30,8 @@ export class VrSceneService {
   private dragManager?: DragManager; // Drag manager for interactive element dragging
   private modelingManager?: ModelingManager; // Modeling manager for creating/connecting elements
   private draggables: THREE.Mesh[] = []; // Current draggable elements (places + transitions)
+  private arcMeshes: THREE.Mesh[] = []; // Raycasting targets for arc shaft+head meshes (used in DELETE and EDIT mode)
+  private editables: THREE.Mesh[] = []; // Combined list of all editable meshes (places + transitions + arc parts)
 
   constructor(private petriNetApi: PetriApiService) {} // Inject API client
 
@@ -85,7 +87,8 @@ export class VrSceneService {
     this.modelingManager = new ModelingManager(
       this.scene,
       this.petriNetApi,
-      () => this.loadCurrentState() // Reload net after changes
+      () => this.loadCurrentState(), // Reload net after changes
+      (mode) => this.dragManager?.setEnabled(mode === ModelingMode.IDLE) // Disable drag in non-IDLE modes to avoid hover color conflicts
     );
 
     // Load initial petri net state 
@@ -111,6 +114,10 @@ export class VrSceneService {
         this.raycaster.setFromCamera(this.mouse, this.camera);
         // Update modeling preview based on raycaster 
         this.modelingManager?.updatePreview(this.raycaster);
+        // Update hover highlight for modes that target existing elements
+        if (this.modelingManager?.getMode() === ModelingMode.DELETE) {
+          this.modelingManager?.updateHover(this.raycaster, this.editables, 0xff3333); // Red tint signals deletion
+        }
       }
     });
     window.addEventListener('pointerdown', () => (this.selectState = true)); // Press/hold
@@ -126,7 +133,7 @@ export class VrSceneService {
         // Only handle space clicks if not hitting a button to avoid conflicts between UI interaction and modeling interactions
         if (!isHittingButton && this.modelingManager?.getMode() !== ModelingMode.IDLE) {
           // Handle space click in modeling manager (create element or select for connection)
-          this.modelingManager?.handleSpaceClick(this.raycaster, this.draggables);
+          this.modelingManager?.handleSpaceClick(this.raycaster, this.draggables, this.arcMeshes);
         }
       }
       // Reset select state
@@ -149,7 +156,7 @@ export class VrSceneService {
         // Check if in modeling mode - handle space clicks
         if (this.modelingManager?.getMode() !== ModelingMode.IDLE) {
           // handle space click in modeling manager (create element or select for connection)
-          this.modelingManager?.handleSpaceClick(this.raycaster, this.draggables);
+          this.modelingManager?.handleSpaceClick(this.raycaster, this.draggables, this.arcMeshes);
         } else {
           // If not in modeling mode, start VR drag (if pointing at a draggable element) - the drag manager will check internally whether the hit element is draggable and handle accordingly
           this.dragManager?.startVRDrag();
@@ -187,6 +194,10 @@ export class VrSceneService {
       // Only update if we're in a modeling mode (not idle) and in VR (ignore mouse movement in VR)
       if (this.renderer.xr.isPresenting && this.modelingManager?.getMode() !== ModelingMode.IDLE) {
         this.modelingManager?.updatePreview(this.raycaster);
+        // Update hover highlight for modes that target existing elements
+        if (this.modelingManager?.getMode() === ModelingMode.DELETE) {
+          this.modelingManager?.updateHover(this.raycaster, this.editables, 0xff3333); // Red tint signals deletion
+        }
       }
       
       // Update VR drag interactions
@@ -226,10 +237,14 @@ export class VrSceneService {
     // Create new group and build net inside
     this.netGroup = new THREE.Group(); // Create fresh group
     this.scene.add(this.netGroup); // Attach to scene
-    const { places, transitions, arcs } = PetriNetBuilder.buildNet(this.netGroup, petriNet); // Build places/transitions/arcs inside group
+    const { places, transitions, arcs, arcMeshes } = PetriNetBuilder.buildNet(this.netGroup, petriNet); // Build places/transitions/arcs inside group and get arc child meshes for interaction
     
     // Collect draggables for modeling manager, store references to place and transition meshes
     this.draggables = [...places.values(), ...transitions.values()];
+    // Store arc child meshes separately for DELETE/EDIT mode raycasting
+    this.arcMeshes = arcMeshes;
+    // Combined target list for delete hover and delete click (places + transitions + arc parts)
+    this.editables = [...this.draggables, ...arcMeshes];
     
     // Register interactive elements with the drag manager so it can handle dragging them in VR
     this.dragManager?.registerElements(places, transitions, arcs);
@@ -278,7 +293,8 @@ export class VrSceneService {
         () => this.resetSimulation(), // Reset callback
         () => this.modelingManager?.setMode(ModelingMode.CREATE_PLACE), // Create place callback
         () => this.modelingManager?.setMode(ModelingMode.CREATE_TRANSITION), // Create transition callback
-        () => this.modelingManager?.setMode(ModelingMode.CONNECT_ELEMENTS) // Connect elements callback
+        () => this.modelingManager?.setMode(ModelingMode.CONNECT_ELEMENTS), // Connect elements callback
+        () => this.modelingManager?.setMode(ModelingMode.DELETE) // Delete element callback
       );
 
       // Attach panel to camera (HUD)

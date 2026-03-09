@@ -71,4 +71,22 @@ export class PetriApiService {
     createArc(from: string, to: string): Observable<{success: boolean, state: PetriNetModel}> {
         return this.http.post<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/arc`, {from, to});
     }
+
+    // Deletes a place (connected arcs are removed automatically on the backend)
+    // DELETE request to backend endpoint with place ID in URL
+    deletePlace(id: string): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.delete<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/place/${id}`);
+    }
+
+    // Deletes a transition (connected arcs are removed automatically on the backend)
+    // DELETE request to backend endpoint with transition ID in URL
+    deleteTransition(id: string): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.delete<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/transition/${id}`);
+    }
+
+    // Deletes a single arc
+    // DELETE request to backend endpoint with arc ID in URL
+    deleteArc(id: string): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.delete<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/arc/${id}`);
+    }
 }

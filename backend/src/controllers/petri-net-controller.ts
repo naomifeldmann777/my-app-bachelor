@@ -127,4 +127,37 @@ export class PetriNetController {
         // Return whether the creation was successful and the updated Petri net state
         res.json({ success, state: this.engine.getState() });
     }
+
+    // DELETE /api/petri/place/:id
+    // Deletes a place and all its connected arcs
+    public deletePlace = (req: Request<{id: string}>, res: Response) => {
+        // Get the place ID from the URL parameters
+        const { id } = req.params;
+        // Delete the place (and connected arcs) in the engine
+        const success = this.engine.deletePlace(id);
+        // Return whether the deletion was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
+
+    // DELETE /api/petri/transition/:id
+    // Deletes a transition and all its connected arcs
+    public deleteTransition = (req: Request<{id: string}>, res: Response) => {
+        // Get the transition ID from the URL parameters
+        const { id } = req.params;
+        // Delete the transition (and connected arcs) in the engine
+        const success = this.engine.deleteTransition(id);
+        // Return whether the deletion was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
+
+    // DELETE /api/petri/arc/:id
+    // Deletes a single arc by ID
+    public deleteArc = (req: Request<{id: string}>, res: Response) => {
+        // Get the arc ID from the URL parameters
+        const { id } = req.params;
+        // Delete the arc in the engine
+        const success = this.engine.deleteArc(id);
+        // Return whether the deletion was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
 }

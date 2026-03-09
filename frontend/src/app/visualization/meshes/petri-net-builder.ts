@@ -12,7 +12,8 @@ export class PetriNetBuilder {
     static buildNet(container: THREE.Object3D, petriNet: PetriNetModel): {
         places: Map<string, THREE.Mesh>,
         transitions: Map<string, THREE.Mesh>,
-        arcs: Map<string, {mesh: THREE.Group, fromId: string, toId: string}>
+        arcs: Map<string, {mesh: THREE.Group, fromId: string, toId: string}>,
+        arcMeshes: THREE.Mesh[]
     } {
         // Create a map to store place meshes by their place ID
         const placeMap = new Map<string, THREE.Mesh>();
@@ -20,6 +21,8 @@ export class PetriNetBuilder {
         const transitionMap = new Map<string, THREE.Mesh>();
         // Create a map to store arc groups with metadata
         const arcMap = new Map<string, {mesh: THREE.Group, fromId: string, toId: string}>();
+        // Flat list of raycasting-ready arc child meshes (shaft + head) used for DELETE/EDIT mode interactions
+        const arcMeshes: THREE.Mesh[] = [];
 
 
         // Iterate over all places defined in the Petri net model
@@ -73,8 +76,14 @@ export class PetriNetBuilder {
                 fromId: arc.from,
                 toId: arc.to
             });
+            // Collect raycasting-ready child meshes (shaft + head) of this arc group
+            arcMesh.mesh.traverse((child) => {
+                if ((child as THREE.Mesh).isMesh) {
+                    arcMeshes.push(child as THREE.Mesh);
+                }
+            });
         }); 
-        // Return the maps of place meshes, transition meshes, and arc metadata for use in interaction handling
-        return { places: placeMap, transitions: transitionMap, arcs: arcMap };
+        // Return the maps of place meshes, transition meshes, arc metadata, and arc child meshes for interaction handling
+        return { places: placeMap, transitions: transitionMap, arcs: arcMap, arcMeshes };
     }
 }

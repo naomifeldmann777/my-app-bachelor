@@ -16,7 +16,8 @@ export class VrControlPanel {
     onCreatePlace: () => void,
     onCreateTransition: () => void,
     onConnectElements: () => void,
-    onDeleteElement: () => void
+    onDeleteElement: () => void,
+    onEditElement: () => void
   ): { group: THREE.Object3D; buttons: THREE.Object3D[] } { // Returns panel root and buttons
     
     
@@ -224,6 +225,28 @@ export class VrControlPanel {
     deleteBtn.setupState(disabled); // Register disabled state
     container.add(deleteBtn); // Add button to panel
     buttons.push(deleteBtn); // Track button for raycasting
+
+    // Edit Element button
+    const editBtn = new (ThreeMeshUI as any).Block({
+      width: 0.6, // Button width
+      height: 0.15, // Button height
+      justifyContent: 'center', // Center text inside button
+      offset: 0.035, // Depth offset for pressed/hover animation
+      margin: 0.015, // Space around the button
+      borderRadius: 0.075 // Rounded corners for button background
+    });
+    editBtn.add(new (ThreeMeshUI as any).Text({ content: 'Edit Element' }));
+    77 // Define and register the "selected" state for the Edit button
+    editBtn.setupState({
+      state: 'selected', 
+      attributes: idle.attributes,
+      onSet: () => onEditElement() // Call the provided callback when this button is clicked
+    });
+    editBtn.setupState(hovered); // Register hovered state
+    editBtn.setupState(idle); // Register idle state
+    editBtn.setupState(disabled); // Register disabled state
+    container.add(editBtn); // Add button to panel
+    buttons.push(editBtn); // Track button for raycasting
     
     // Subtitle block indicating the section for firing transitions
     const subtitleBlock = new (ThreeMeshUI as any).Block({

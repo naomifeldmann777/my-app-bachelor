@@ -160,4 +160,37 @@ export class PetriNetController {
         // Return whether the deletion was successful and the updated Petri net state
         res.json({ success, state: this.engine.getState() });
     }
+
+    // PATCH /api/petri/place/:id/properties
+    // Updates editable properties of a place (label, tokens, role)
+    public updatePlaceProperties = (req: Request<{id: string}, any, {label?: string; tokens?: number; role?: string}>, res: Response) => {
+        // Get the place ID from the URL parameters
+        const { id } = req.params;
+        // Update the place properties in the engine and get whether it was successful
+        const success = this.engine.updatePlaceProperties(id, req.body);
+        // Return whether the update was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
+
+    // PATCH /api/petri/transition/:id/properties
+    // Updates editable properties of a transition (label, capability)
+    public updateTransitionProperties = (req: Request<{id: string}, any, {label?: string; capability?: string}>, res: Response) => {
+        // Get the transition ID from the URL parameters
+        const { id } = req.params;
+        // Update the transition properties in the engine and get whether it was successful
+        const success = this.engine.updateTransitionProperties(id, req.body);
+        // Return whether the update was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
+
+    // PATCH /api/petri/arc/:id/weight
+    // Updates the weight of an arc
+    public updateArcWeight = (req: Request<{id: string}, any, {weight: number}>, res: Response) => {
+        // Get the arc ID from the URL parameters
+        const { id } = req.params;
+        // Update the arc weight in the engine and get whether it was successful
+        const success = this.engine.updateArcWeight(id, req.body.weight);
+        // Return whether the update was successful and the updated Petri net state
+        res.json({ success, state: this.engine.getState() });
+    }
 }

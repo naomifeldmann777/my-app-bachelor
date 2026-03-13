@@ -7,7 +7,8 @@ export enum ModelingMode {
     CREATE_PLACE = 'CREATE_PLACE', // User clicked "Create Place" button - waiting for position click
     CREATE_TRANSITION = 'CREATE_TRANSITION', // User clicked "Create Transition" button - waiting for position click
     CONNECT_ELEMENTS = 'CONNECT_ELEMENTS', // User clicked "Connect Elements" button - waiting for 2 element selections
-    DELETE = 'DELETE' // User clicked "Delete Element" button - next click removes the hit element (and connected arcs)
+    DELETE = 'DELETE', // User clicked "Delete Element" button - next click removes the hit element (and connected arcs)
+    EDIT = 'EDIT' // User clicked "Edit Element" button - next click opens property edit panel for the hit element
 }
 
 // Manages interactive modeling of Petri net elements
@@ -90,6 +91,8 @@ export class ModelingManager {
             this.selectElementForConnection(raycaster, draggables); // Select elements to connect (arcs excluded intentionally)
         } else if (this.mode === ModelingMode.DELETE) { // If in delete mode
             this.deleteElementAtRay(raycaster, [...draggables, ...arcMeshes]); // Delete the element under the ray (places, transitions, and arcs)
+        } else if (this.mode === ModelingMode.EDIT) { // If in edit mode
+            this.handleEdit(raycaster, [...draggables, ...arcMeshes]); // Open edit panel for the hit element
         }
     }
 
@@ -137,6 +140,22 @@ export class ModelingManager {
         if (this.selectedElements.length === 2) { // If we now have 2 elements selected
             this.createArc(this.selectedElements[0], this.selectedElements[1]); // Create arc between them
         }
+    }
+
+    // Callback to show the edit panel; set externally by VrSceneService
+    onShowEditPanel?: (type: string, id: string, data: any) => void;
+
+    // Raycast in EDIT mode and fire the onShowEditPanel callback with the hit element's data
+    private handleEdit(raycaster: THREE.Raycaster, targets: THREE.Mesh[]) {
+        const intersects = raycaster.intersectObjects(targets, false); // Check if ray hits any target elements (places, transitions, arcs)
+        if (intersects.length === 0) return; // If nothing hit, do nothing
+        const hitMesh = intersects[0].object as THREE.Mesh; // Get the first (closest) mesh that was hit
+        const { id, type } = hitMesh.userData as { id: string; type: string }; // Read element ID and type from mesh userData (set when creating the meshes) to know which element was hit
+        // Collect relevant data depending on element type
+        const data = type === 'place' ? hitMesh.userData['placeData'] // placeData contains the full place info needed for editing (label, position, tokens, role)
+                   : type === 'transition' ? hitMesh.userData['transitionData'] // transitionData contains the full transition info needed for editing (label, position, capability)
+                   : { id }; // arc: only id needed
+        this.onShowEditPanel?.(type, id, data); // Fire callback to show edit panel with element type, id, and data (used to populate the fields in the edit form)
     }
 
     // Highlight the element under the ray with the given color (called every frame in certain modes to show hover effect)

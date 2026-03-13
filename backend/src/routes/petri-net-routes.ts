@@ -36,5 +36,11 @@ router.delete('/place/:id', controller.deletePlace);
 router.delete('/transition/:id', controller.deleteTransition);
 // Route to delete arc
 router.delete('/arc/:id', controller.deleteArc);
+// Route to update place properties
+router.patch('/place/:id/properties', controller.updatePlaceProperties);
+// Route to update transition properties
+router.patch('/transition/:id/properties', controller.updateTransitionProperties);
+// Route to update arc weight
+router.patch('/arc/:id/weight', controller.updateArcWeight);
 
 export default router; 

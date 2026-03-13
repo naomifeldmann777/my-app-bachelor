@@ -1,16 +1,16 @@
 {
   "id": "pick_place_with_preposes",
   "places": [
-    { "id": "R_prePick", "label": "prePick", "position": { "x": -4, "y": 2.4, "z": -1.5 }, "tokens_number": 0, "role": "ee_position"},
-    { "id": "R_home", "label": "home", "position": { "x": 0, "y": 2.4, "z": -1.5 }, "tokens_number": 1, "role": "ee_position"},
-    { "id": "R_prePlace", "label": "prePlace", "position": { "x": 4, "y": 2.4, "z": -1.5 }, "tokens_number": 0, "role": "ee_position"},
-    { "id": "R_pickPose", "label": "pickPose", "position": { "x": -4, "y": 0.8, "z": -1.5 }, "tokens_number": 0, "role": "ee_position"},
-    { "id": "R_placePose", "label": "placePose", "position": { "x": 4, "y": 0.8, "z": -1.5 }, "tokens_number": 0, "role": "ee_position"},
-    { "id": "O_objectAtPick", "label": "objectAtPick", "position": { "x": -4, "y": -3.2, "z": -1.5 }, "tokens_number": 3, "role": "object_state"},
-    { "id": "O_objectCarried", "label": "objectCarried", "position": { "x": 0, "y": -3.2, "z": -1.5 }, "tokens_number": 0, "role": "object_state"},
-    { "id": "O_objectAtPlace", "label": "objectAtPlace", "position": { "x": 4, "y": -3.2, "z": -1.5 }, "tokens_number": 0, "role": "object_state"},
-    { "id": "G_open", "label": "gripper_open", "position": { "x": 0, "y": 0, "z": -1.5 }, "tokens_number": 1, "role": "ee_state" },
-    { "id": "G_closed", "label": "gripper_closed", "position": { "x": 0, "y": -1.6, "z": -1.5 }, "tokens_number": 0, "role": "ee_state" }
+    { "id": "R_prePick", "label": "prePick", "position": { "x": -4, "y": 2.4, "z": -1.5 }, "tokens_number": 0, "role": "ee-position"},
+    { "id": "R_home", "label": "home", "position": { "x": 0, "y": 2.4, "z": -1.5 }, "tokens_number": 1, "role": "ee-position"},
+    { "id": "R_prePlace", "label": "prePlace", "position": { "x": 4, "y": 2.4, "z": -1.5 }, "tokens_number": 0, "role": "ee-position"},
+    { "id": "R_pickPose", "label": "pickPose", "position": { "x": -4, "y": 0.8, "z": -1.5 }, "tokens_number": 0, "role": "ee-position"},
+    { "id": "R_placePose", "label": "placePose", "position": { "x": 4, "y": 0.8, "z": -1.5 }, "tokens_number": 0, "role": "ee-position"},
+    { "id": "O_objectAtPick", "label": "objectAtPick", "position": { "x": -4, "y": -3.2, "z": -1.5 }, "tokens_number": 3, "role": "object-state"},
+    { "id": "O_objectCarried", "label": "objectCarried", "position": { "x": 0, "y": -3.2, "z": -1.5 }, "tokens_number": 0, "role": "object-state"},
+    { "id": "O_objectAtPlace", "label": "objectAtPlace", "position": { "x": 4, "y": -3.2, "z": -1.5 }, "tokens_number": 0, "role": "object-state"},
+    { "id": "G_open", "label": "gripper_open", "position": { "x": 0, "y": 0, "z": -1.5 }, "tokens_number": 1, "role": "ee-state" },
+    { "id": "G_closed", "label": "gripper_closed", "position": { "x": 0, "y": -1.6, "z": -1.5 }, "tokens_number": 0, "role": "ee-state" }
   ],
   "transitions": [
     { "id": "T_m_prePick_to_home", "label": "move prePick-home", "position": { "x": -2, "y": 1.6, "z": -1.5 }, "capability": "move" },

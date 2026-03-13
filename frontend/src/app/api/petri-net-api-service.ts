@@ -89,4 +89,22 @@ export class PetriApiService {
     deleteArc(id: string): Observable<{success: boolean, state: PetriNetModel}> {
         return this.http.delete<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/arc/${id}`);
     }
+
+    // Updates editable properties of a place (label, tokens, role)
+    // PATCH request to backend endpoint with place ID in URL and updated properties in body
+    updatePlaceProperties(id: string, props: {label?: string; tokens?: number; role?: string}): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.patch<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/place/${id}/properties`, props);
+    }
+
+    // Updates editable properties of a transition (label, capability)
+    // PATCH request to backend endpoint with transition ID in URL and updated properties in body
+    updateTransitionProperties(id: string, props: {label?: string; capability?: string}): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.patch<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/transition/${id}/properties`, props);
+    }
+
+    // Updates the weight of an arc
+    // PATCH request to backend endpoint with arc ID in URL and new weight in body
+    updateArcWeight(id: string, weight: number): Observable<{success: boolean, state: PetriNetModel}> {
+        return this.http.patch<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/arc/${id}/weight`, {weight});
+    }
 }

@@ -25,7 +25,7 @@ export class TransitionMesh {
             this.transition.position.z
         ); 
 
-        // Store metadata for drag interactions
+        // Store metadata for drag interactions and raycasting in DELETE/EDIT mode
         this.mesh.userData = {
             type: 'transition',
             id: this.transition.id,

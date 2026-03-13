@@ -216,6 +216,45 @@ export class PetriNetEngine {
         return true;
     }
 
+    // Updates editable properties of a place (label, tokens, role)
+    public updatePlaceProperties(id: string, props: { label?: string; tokens?: number; role?: string }): boolean {
+        // Find the place with the given ID
+        const place = this.currentPetriNet.places.find(p => p.id === id);
+        // If no such place exists, return false
+        if (!place) return false;
+        // Update the place's properties with the new values if they are provided in the props object
+        if (props.label !== undefined) place.label = props.label;
+        if (props.tokens !== undefined) place.tokens = props.tokens;
+        if (props.role !== undefined) place.role = props.role;
+        // Indicate that the update was successful
+        return true;
+    }
+
+    // Updates editable properties of a transition (label, capability)
+    public updateTransitionProperties(id: string, props: { label?: string; capability?: string }): boolean {
+        // Find the transition with the given ID
+        const transition = this.currentPetriNet.transitions.find(t => t.id === id);
+        // If no such transition exists, return false
+        if (!transition) return false;
+        // Update the transition's properties with the new values if they are provided in the props object
+        if (props.label !== undefined) transition.label = props.label;
+        if (props.capability !== undefined) transition.capability = props.capability;
+        // Indicate that the update was successful
+        return true;
+    }
+
+    // Updates the weight of an arc
+    public updateArcWeight(id: string, weight: number): boolean {
+        // Find the arc with the given ID
+        const arc = this.currentPetriNet.arcs.find(a => a.id === id);
+        // If no such arc exists, return false
+        if (!arc) return false;
+        // Update the arc's weight with the new value
+        arc.weight = weight;
+        // Indicate that the update was successful
+        return true;
+    }
+
     // Creates a new arc between two elements and returns success status
     public createArc(from: string, to: string): boolean {
         // Validate that from element exists (either a place or transition)

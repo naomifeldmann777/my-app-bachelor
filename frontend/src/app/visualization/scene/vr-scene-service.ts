@@ -7,6 +7,7 @@ import { PetriNetBuilder } from '../meshes/petri-net-builder';
 import { PetriNetModel } from '../../domain/petri-net-model'; 
 import { PetriApiService } from '../../api/petri-net-api-service'; 
 import { VrControlPanel } from '../ui/vr-control-panel'; 
+import { VrEditPanel } from '../ui/vr-edit-panel';
 import { RobotAvatar } from '../robot/robot-avatar';
 import { DragManager } from '../../services/drag-manager';
 import { ModelingManager, ModelingMode } from '../../services/modeling-manager';
@@ -29,6 +30,8 @@ export class VrSceneService {
   private robotAvatar?: RobotAvatar; // Robot avatar instance for robot visualization
   private dragManager?: DragManager; // Drag manager for interactive element dragging
   private modelingManager?: ModelingManager; // Modeling manager for creating/connecting elements
+  private editPanel?: VrEditPanel; // Floating property-edit panel shown in EDIT mode
+  private editPanelButtons: THREE.Object3D[] = []; // Tracked separately so we can swap them on keyboard rebuild
   private draggables: THREE.Mesh[] = []; // Current draggable elements (places + transitions)
   private arcMeshes: THREE.Mesh[] = []; // Raycasting targets for arc shaft+head meshes (used in DELETE and EDIT mode)
   private editables: THREE.Mesh[] = []; // Combined list of all editable meshes (places + transitions + arc parts)
@@ -91,6 +94,32 @@ export class VrSceneService {
       (mode) => this.dragManager?.setEnabled(mode === ModelingMode.IDLE) // Disable drag in non-IDLE modes to avoid hover color conflicts
     );
 
+    // Create the floating edit panel (hidden by default)
+    this.editPanel = new VrEditPanel(
+      this.scene,
+      this.petriNetApi,
+      () => { this.loadCurrentState(); this.refreshControlPanel(); },
+      () => {
+        // Remove edit-panel buttons from raycasting list when panel closes
+        this.objsToTest = this.objsToTest.filter(b => !this.editPanelButtons.includes(b));
+        this.editPanelButtons = [];
+        this.modelingManager?.setMode(ModelingMode.IDLE); // Return to IDLE modeling mode when panel closes
+      }
+    );
+    // Connect modeling manager to edit panel: called when user clicks element in EDIT mode
+    this.modelingManager.onShowEditPanel = (type, id, data) => {
+      this.editPanel!.show(type, id, data);
+      // onRebuild will fire immediately after show() builds the panel and calls _addToScene
+    };
+    // Refresh objsToTest whenever the edit panel rebuilds (property list -> keyboard -> etc.)
+    this.editPanel.onRebuild = () => {
+      // Remove previous edit panel buttons from raycasting list
+      this.objsToTest = this.objsToTest.filter(b => !this.editPanelButtons.includes(b));
+      // Track and register the new set of buttons
+      this.editPanelButtons = [...this.editPanel!.buttons];
+      this.objsToTest.push(...this.editPanelButtons);
+    };
+
     // Load initial petri net state 
     this.loadCurrentState(); // Fetch backend state and build meshes
 
@@ -117,6 +146,8 @@ export class VrSceneService {
         // Update hover highlight for modes that target existing elements
         if (this.modelingManager?.getMode() === ModelingMode.DELETE) {
           this.modelingManager?.updateHover(this.raycaster, this.editables, 0xff3333); // Red tint signals deletion
+        } else if (this.modelingManager?.getMode() === ModelingMode.EDIT) {
+          this.modelingManager?.updateHover(this.raycaster, this.editables, 0xffaa00); // Orange tint signals edit
         }
       }
     });
@@ -197,6 +228,8 @@ export class VrSceneService {
         // Update hover highlight for modes that target existing elements
         if (this.modelingManager?.getMode() === ModelingMode.DELETE) {
           this.modelingManager?.updateHover(this.raycaster, this.editables, 0xff3333); // Red tint signals deletion
+        } else if (this.modelingManager?.getMode() === ModelingMode.EDIT) {
+          this.modelingManager?.updateHover(this.raycaster, this.editables, 0xffaa00); // Orange tint signals edit
         }
       }
       
@@ -294,7 +327,8 @@ export class VrSceneService {
         () => this.modelingManager?.setMode(ModelingMode.CREATE_PLACE), // Create place callback
         () => this.modelingManager?.setMode(ModelingMode.CREATE_TRANSITION), // Create transition callback
         () => this.modelingManager?.setMode(ModelingMode.CONNECT_ELEMENTS), // Connect elements callback
-        () => this.modelingManager?.setMode(ModelingMode.DELETE) // Delete element callback
+        () => this.modelingManager?.setMode(ModelingMode.DELETE), // Delete element callback
+        () => this.modelingManager?.setMode(ModelingMode.EDIT) // Edit element callback
       );
 
       // Attach panel to camera (HUD)

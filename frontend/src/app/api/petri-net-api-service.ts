@@ -107,4 +107,10 @@ export class PetriApiService {
     updateArcWeight(id: string, weight: number): Observable<{success: boolean, state: PetriNetModel}> {
         return this.http.patch<{success: boolean, state: PetriNetModel}>(`${this.baseUrl}/arc/${id}/weight`, {weight});
     }
+
+    // Saves the current Petri net model to a JSON file
+    // POST request to backend endpoint that stores the model in the data folder 
+    saveModel(): Observable<{success: boolean, message: string}> {
+        return this.http.post<{success: boolean, message: string}>(`${this.baseUrl}/save`, {});
+    }
 }

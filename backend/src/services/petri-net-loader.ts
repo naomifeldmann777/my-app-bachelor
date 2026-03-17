@@ -32,4 +32,55 @@ export class PetriNetLoader {
         // Create and return the PetriNet object
         return new PetriNet(places, transitions, arcs); 
     }
+
+    // Saves the given Petri net model to a JSON file in the data folder with a timestamped filename
+    saveToFile(petriNet: PetriNet): string {
+        // Generate a timestamped filename for the saved model (e.g., "saved-petri-net-2024-06-01T12-30-45.json")
+        const now = new Date(); // Get the current date and time
+        const pad = (n: number) => n.toString().padStart(2, '0'); // Helper function to pad single-digit numbers with a leading zero
+        const year = now.getFullYear();
+        const month = pad(now.getMonth() + 1); // Months are zero-indexed in JavaScript, so we add 1
+        const day = pad(now.getDate());
+        const hour = pad(now.getHours());
+        const min = pad(now.getMinutes());
+        const sec = pad(now.getSeconds());
+        const timestamp = `${year}-${month}-${day}T${hour}-${min}-${sec}`; // Construct the timestamp string in the format "YYYY-MM-DDTHH-MM-SS"
+        const filename = `saved-petri-net-${timestamp}.json`; // Construct the filename using the timestamp
+
+        // Build absolute path to the data folder
+        const absoluteFilePath = path.resolve(__dirname, '../data', filename); 
+
+        // Convert domain objects back to JSON-serializable format
+        const jsonData = {
+            // Map Place objects to JSON format
+            places: petriNet.places.map(p => ({
+                id: p.id,
+                label: p.label,
+                tokens_number: p.tokens,
+                position: p.position,
+                role: p.role
+            })),
+            // Map Transition objects to JSON format
+            transitions: petriNet.transitions.map(t => ({
+                id: t.id,
+                label: t.label,
+                capability: t.capability,
+                position: t.position
+            })),
+            // Map Arc objects to JSON format
+            arcs: petriNet.arcs.map(a => ({
+                id: a.id,
+                weight: a.weight,
+                from: a.from,
+                to: a.to
+            }))
+        };
+        
+        // Write the JSON data to the file 
+        // null parameter means no replacer function, and 2 means pretty-print with 2 spaces indentation
+        fs.writeFileSync(absoluteFilePath, JSON.stringify(jsonData, null, 2));
+        
+        // Return the filename
+        return filename;
+    }
 }

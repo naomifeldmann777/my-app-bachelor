@@ -193,4 +193,21 @@ export class PetriNetController {
         // Return whether the update was successful and the updated Petri net state
         res.json({ success, state: this.engine.getState() });
     }
+
+    // POST /api/petri/save
+    // Saves the current Petri net model to a JSON file
+    // The model is saved to the data folder with a timestamp
+    public saveModel = (req: Request, res: Response) => {
+        try {
+            // Get the current Petri net state from the engine
+            const currentState = this.engine.getState();
+            // Save it to a JSON file and get the filename
+            const filename = this.engine.savePetriNetToFile(currentState);
+            // Return success with the filename
+            res.json({ success: true, message: `Petri net saved to ${filename}` });
+        } catch (error: any) {
+            // Return error if something went wrong
+            res.status(500).json({ success: false, message: error.message });
+        }
+    }
 }

@@ -283,4 +283,9 @@ export class PetriNetEngine {
         // Indicate that the creation was successful
         return true;
     }
-}
+
+    // Saves the current Petri net model to a JSON file
+    public savePetriNetToFile(petriNet: PetriNet): string {
+        // Use the loader's saveToFile method to save the model and return the filename 
+        return this.loader.saveToFile(petriNet);
+    }}

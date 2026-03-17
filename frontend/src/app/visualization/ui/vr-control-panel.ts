@@ -17,7 +17,9 @@ export class VrControlPanel {
     onCreateTransition: () => void,
     onConnectElements: () => void,
     onDeleteElement: () => void,
-    onEditElement: () => void
+    onEditElement: () => void,
+    // Save callback to persist the current Petri net model
+    onSaveModel: () => void
   ): { group: THREE.Object3D; buttons: THREE.Object3D[] } { // Returns panel root and buttons
     
     
@@ -118,6 +120,33 @@ export class VrControlPanel {
     container.add(resetBtn); 
     // Track button for raycasting so input code can set states
     buttons.push(resetBtn); 
+
+    // Save Model button block
+    const saveBtn = new (ThreeMeshUI as any).Block({
+      width: 0.6, // Button width
+      height: 0.17, // Button height
+      justifyContent: 'center', // Center text inside button
+      offset: 0.035, // Depth offset for pressed/hover animation
+      margin: 0.02, // Space around the button
+      borderRadius: 0.08 // Rounded corners for button background
+    });
+    saveBtn.add(new (ThreeMeshUI as any).Text({ content: 'Save Model' })); // Button label
+    // Define and register the "selected" state for the Save Model button
+    saveBtn.setupState({
+      state: 'selected', // Activated on click (via raycasting input calling setState)
+      attributes: idle.attributes, // Use idle look; only action matters here
+      onSet: () => onSaveModel() // Call save once when entering selected state
+    });
+    // Register the "hovered" state:
+    saveBtn.setupState(hovered);
+    // Register the "idle" state:
+    saveBtn.setupState(idle);
+    // Register disabled state so external code can show disabled look
+    saveBtn.setupState(disabled);
+    // Add save button to the panel 
+    container.add(saveBtn); 
+    // Track button for raycasting so input code can set states
+    buttons.push(saveBtn); 
 
     // Modeling section subtitle
     const modelingSubtitle = new (ThreeMeshUI as any).Block({

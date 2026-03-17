@@ -42,5 +42,7 @@ router.patch('/place/:id/properties', controller.updatePlaceProperties);
 router.patch('/transition/:id/properties', controller.updateTransitionProperties);
 // Route to update arc weight
 router.patch('/arc/:id/weight', controller.updateArcWeight);
+// Route to save the current Petri net model to a JSON file
+router.post('/save', controller.saveModel);
 
 export default router; 

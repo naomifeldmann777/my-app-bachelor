@@ -328,7 +328,8 @@ export class VrSceneService {
         () => this.modelingManager?.setMode(ModelingMode.CREATE_TRANSITION), // Create transition callback
         () => this.modelingManager?.setMode(ModelingMode.CONNECT_ELEMENTS), // Connect elements callback
         () => this.modelingManager?.setMode(ModelingMode.DELETE), // Delete element callback
-        () => this.modelingManager?.setMode(ModelingMode.EDIT) // Edit element callback
+        () => this.modelingManager?.setMode(ModelingMode.EDIT), // Edit element callback
+        () => this.saveModel() // Save model callback
       );
 
       // Attach panel to camera (HUD)
@@ -452,5 +453,11 @@ export class VrSceneService {
       // Move robot back to initial pose after reset (if loaded)
       this.robotAvatar?.setJoints([0, 0, -1.57, 0, 1.57, 0]);
     });
+  }
+
+  // Save the current Petri net model to a JSON file
+  private saveModel(): void {
+    // Call the API to save the model
+    this.petriNetApi.saveModel().subscribe();
   }
 }

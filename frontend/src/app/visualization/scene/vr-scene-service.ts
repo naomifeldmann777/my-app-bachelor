@@ -55,7 +55,7 @@ export class VrSceneService {
     // Create camera rig (parent group) to position the VR user in the scene
     // The VR headset controls the camera position relative to this rig
     const cameraRig = new THREE.Group(); 
-    cameraRig.position.set(0, 0, 5); // Position the rig 5 units away from origin
+    cameraRig.position.set(0, 0, 4); // Position the rig 4 units away from origin
     cameraRig.add(this.camera); // Camera is child of rig
     this.scene.add(cameraRig); // Add rig to scene
 
@@ -66,8 +66,8 @@ export class VrSceneService {
     // Configure raycaster for better hit detection
     this.raycaster.near = 0; // Start raycasting from the controller position
     this.raycaster.far = Infinity; // No maximum distance for raycasting
-    this.raycaster.params.Mesh = { threshold: 0.1 }; // Allow some tolerance for hovering over meshes
-    this.raycaster.params.Line = { threshold: 0.1 }; // Allow some tolerance for hovering over lines (arcs)
+    this.raycaster.params.Mesh = { threshold: 0.2 }; // Allow some tolerance for hovering over meshes
+    this.raycaster.params.Line = { threshold: 0.2 }; // Allow some tolerance for hovering over lines (arcs)
 
     container?.appendChild(this.renderer.domElement); // Add canvas to DOM
     document.body.appendChild(VRButton.createButton(this.renderer)); // Add VR entry button
@@ -335,8 +335,9 @@ export class VrSceneService {
       // Attach panel to camera (HUD)
       this.scene.add(group); 
       this.panelGroup = group; // Keep reference
-      group.position.set(0, 0, -1.5); // Position in view space
-      (group as any).rotation.x = -0.15; // Slight tilt for readability
+      group.position.set(8, 0, -1); // Position in view space
+      (group as any).rotation.y = -1.57; // Rotate panel to be 90 degrees to the model 
+      (group as any).rotation.z = 0; // Keep panel straight for readability
       group.scale.set(2.5, 2.5, 1); // Scale down
       // Register clickable buttons for raycasting
       this.objsToTest.push(...buttons); 

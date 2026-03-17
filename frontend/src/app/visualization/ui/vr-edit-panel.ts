@@ -356,10 +356,11 @@ export class VrEditPanel {
 
   // Helper method to add the edit or keyboard panel container to the Three.js scene with appropriate positioning and scaling
   private _addToScene(container: any) {
-    // Position panel to the right of the control panel, same scale
-    container.position.set(2.5, 0, -1.5);
+    // Position panel to the left of the control panel, same scale
+    container.position.set(5, -1, -1);
     container.scale.set(2.5, 2.5, 1);
-    container.rotation.x = -0.15; // Slight tilt for readability
+    container.rotation.y = -1.57; // Rotate the panel to be 90 degrees to the model
+    (container as any).rotation.z = 0; // Keep panel straight for readability
     this.scene.add(container); // Add the panel container to the scene
     this.group = container; // Store reference to the active panel group for later removal when hiding the panel
     // Notify vr scene service so it can register the new buttons for raycasting 

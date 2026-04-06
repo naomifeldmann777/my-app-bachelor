@@ -415,6 +415,7 @@ export class VrSceneService {
   // Also triggers robot animations based on transition capabilities
   private fireTransition(id: string): void { 
     this.petriNetApi.fireTransition(id).subscribe((resp: { fired: boolean; state: PetriNetModel }) => { 
+      if (!resp.fired) return; // Return if transition was not successfully fired
       this.rebuildNet(resp.state); // Use returned state
       this.refreshControlPanel(); // Refresh fireable transitions UI
 

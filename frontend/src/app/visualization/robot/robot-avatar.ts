@@ -184,7 +184,8 @@ export class RobotAvatar {
     for (let iter = 0; iter < iterations; iter++) {
       // Get current position of end-effector in 3D space
       let eePos = ee.getWorldPosition(new THREE.Vector3());
-
+      // Check if certain accuracy has been reached
+      if (eePos.distanceTo(target) < 0.01) break;
       // Loop through joints backwards (from joint6 to joint1) --> how much should this joint rotate so the end-effector moves closer to the target
       for (let i = 5; i >= 0; i--) {
         // Skip this joint if it's locked

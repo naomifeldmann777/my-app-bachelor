@@ -142,7 +142,9 @@ export class VrSceneService {
         // Set raycaster from camera through mouse position
         this.raycaster.setFromCamera(this.mouse, this.camera);
         // Update modeling preview based on raycaster 
-        this.modelingManager?.updatePreview(this.raycaster);
+        if (this.modelingManager?.getMode() === ModelingMode.CREATE_PLACE || this.modelingManager?.getMode() === ModelingMode.CREATE_TRANSITION) {
+          this.modelingManager?.updatePreview(this.raycaster);
+        }
         // Update hover highlight for modes that target existing elements
         if (this.modelingManager?.getMode() === ModelingMode.DELETE) {
           this.modelingManager?.updateHover(this.raycaster, this.editables, 0xff3333); // Red tint signals deletion
@@ -224,7 +226,9 @@ export class VrSceneService {
       // Update modeling preview in VR mode
       // Only update if we're in a modeling mode (not idle) and in VR (ignore mouse movement in VR)
       if (this.renderer.xr.isPresenting && this.modelingManager?.getMode() !== ModelingMode.IDLE) {
-        this.modelingManager?.updatePreview(this.raycaster);
+        if (this.modelingManager?.getMode() === ModelingMode.CREATE_PLACE || this.modelingManager?.getMode() === ModelingMode.CREATE_TRANSITION) {
+          this.modelingManager?.updatePreview(this.raycaster);
+        }
         // Update hover highlight for modes that target existing elements
         if (this.modelingManager?.getMode() === ModelingMode.DELETE) {
           this.modelingManager?.updateHover(this.raycaster, this.editables, 0xff3333); // Red tint signals deletion

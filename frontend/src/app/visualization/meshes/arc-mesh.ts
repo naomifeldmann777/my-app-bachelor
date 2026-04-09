@@ -38,13 +38,13 @@ export class ArcMesh {
         // Create the shaft mesh from the geometry and material
         const shaft = new THREE.Mesh(shaftGeometry, material);
         // Tag shaft so raycasting in DELETE/EDIT mode can identify it as an arc
-        shaft.userData = { id: arc.id, type: 'arc' };
+        shaft.userData = { id: arc.id, type: 'arc', arcData: this.arc };
         // Create a cone geometry for the arrowhead with radius 0.1 and height = headLength
         const headGeometry = new THREE.ConeGeometry(0.1, headLength, 32); 
         // Create the head mesh from the geometry and material
         const head = new THREE.Mesh(headGeometry, material);
         // Tag head so raycasting in DELETE/EDIT mode can identify it as an arc
-        head.userData = { id: arc.id, type: 'arc' };
+        head.userData = { id: arc.id, type: 'arc', arcData: this.arc };
 
         // Declare a variable holding how far to offset from the start object 
         let startOffsetDistance: number;

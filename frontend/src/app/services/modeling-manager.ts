@@ -154,7 +154,7 @@ export class ModelingManager {
         // Collect relevant data depending on element type
         const data = type === 'place' ? hitMesh.userData['placeData'] // placeData contains the full place info needed for editing (label, position, tokens, role)
                    : type === 'transition' ? hitMesh.userData['transitionData'] // transitionData contains the full transition info needed for editing (label, position, capability)
-                   : { id }; // arc: only id needed
+                   : hitMesh.userData['arcData']; // arcData contains the full arc info needed for editing (weight)
         this.onShowEditPanel?.(type, id, data); // Fire callback to show edit panel with element type, id, and data (used to populate the fields in the edit form)
     }
 

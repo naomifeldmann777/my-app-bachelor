@@ -90,7 +90,7 @@ export class VrSceneService {
     this.modelingManager = new ModelingManager(
       this.scene,
       this.petriNetApi,
-      () => this.loadCurrentState(), // Reload net after changes
+      () => {this.loadCurrentState(); this.refreshControlPanel()}, // Reload net after changes and refresh control panel to update fireable transitions
       (mode) => this.dragManager?.setEnabled(mode === ModelingMode.IDLE) // Disable drag in non-IDLE modes to avoid hover color conflicts
     );
 

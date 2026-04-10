@@ -336,10 +336,9 @@ export class VrSceneService {
         () => this.saveModel() // Save model callback
       );
 
-      // Attach panel to camera (HUD)
       this.scene.add(group); 
       this.panelGroup = group; // Keep reference
-      group.position.set(8, 0, -1); // Position in view space
+      group.position.set(8, 0, 2); // Position in view space
       (group as any).rotation.y = -1.57; // Rotate panel to be 90 degrees to the model 
       (group as any).rotation.z = 0; // Keep panel straight for readability
       group.scale.set(2.5, 2.5, 1); // Scale down

@@ -132,8 +132,6 @@ export class ModelingManager {
         if (intersects.length === 0) return; // If nothing hit, do nothing
         const hitMesh = intersects[0].object as THREE.Mesh; // Get the first (closest) mesh that was hit
         if (this.selectedElements.includes(hitMesh)) return; // If already selected, ignore this click
-        // Highlight selected element
-        (hitMesh.material as THREE.MeshStandardMaterial).color.set(0xffaa00); // Set color to orange to show it's selected
         this.selectedElements.push(hitMesh); // Add this element to selection array
 
         // If 2 elements selected, create arc
@@ -161,6 +159,7 @@ export class ModelingManager {
     // Highlight the element under the ray with the given color (called every frame in certain modes to show hover effect)
     updateHover(raycaster: THREE.Raycaster, targets: THREE.Mesh[], highlightColor: THREE.ColorRepresentation) {
         const hit = raycaster.intersectObjects(targets, false)[0]?.object as THREE.Mesh | undefined; // Get the first hit mesh from raycast against target meshes (places, transitions, arcs)
+        
         // Restore color of previously highlighted mesh if the ray moved off it
         if (this.hoverMesh && this.hoverMesh !== hit) {
             (this.hoverMesh.material as THREE.MeshStandardMaterial).color.copy(this.hoverOriginalColor);

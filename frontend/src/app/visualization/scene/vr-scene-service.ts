@@ -150,6 +150,8 @@ export class VrSceneService {
           this.modelingManager?.updateHover(this.raycaster, this.editables, 0xff3333); // Red tint signals deletion
         } else if (this.modelingManager?.getMode() === ModelingMode.EDIT) {
           this.modelingManager?.updateHover(this.raycaster, this.editables, 0xffaa00); // Orange tint signals edit
+        } else if (this.modelingManager?.getMode() === ModelingMode.CONNECT_ELEMENTS) {
+          this.modelingManager?.updateHover(this.raycaster, this.draggables, 0xffaa00); // Orange tint for hover
         }
       }
     });
@@ -208,7 +210,9 @@ export class VrSceneService {
     this.renderer.setAnimationLoop(() => { 
       const delta = clock.getDelta(); // Get the time (in seconds) since the last frame
       ThreeMeshUI.update(); // Update the 3D UI layout and state
-      this.controls.update(); // Update orbit controls
+      if (!this.renderer.xr.isPresenting) { // Only update orbit controls in desktop mode (disable in VR to avoid conflicts with headset movement)
+        this.controls.update(); // Update orbit controls
+      }
       this.robotAvatar?.update(delta); // Advance robot animation by 'delta' seconds (smooth, time-based)
       
       // Set VR raycaster once per frame (used by updateButtons, modeling preview, and drag manager)
@@ -234,6 +238,8 @@ export class VrSceneService {
           this.modelingManager?.updateHover(this.raycaster, this.editables, 0xff3333); // Red tint signals deletion
         } else if (this.modelingManager?.getMode() === ModelingMode.EDIT) {
           this.modelingManager?.updateHover(this.raycaster, this.editables, 0xffaa00); // Orange tint signals edit
+        } else if (this.modelingManager?.getMode() === ModelingMode.CONNECT_ELEMENTS) {
+          this.modelingManager?.updateHover(this.raycaster, this.draggables, 0xffaa00); // Orange tint for hover
         }
       }
       

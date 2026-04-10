@@ -55,7 +55,7 @@ export class VrSceneService {
     // Create camera rig (parent group) to position the VR user in the scene
     // The VR headset controls the camera position relative to this rig
     const cameraRig = new THREE.Group(); 
-    cameraRig.position.set(0, 0, 4); // Position the rig 4 units away from origin
+    cameraRig.position.set(0, 0, 7); // Position the rig 7 units away from origin
     cameraRig.add(this.camera); // Camera is child of rig
     this.scene.add(cameraRig); // Add rig to scene
 

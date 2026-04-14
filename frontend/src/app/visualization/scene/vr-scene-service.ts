@@ -66,8 +66,6 @@ export class VrSceneService {
     // Configure raycaster for better hit detection
     this.raycaster.near = 0; // Start raycasting from the controller position
     this.raycaster.far = Infinity; // No maximum distance for raycasting
-    this.raycaster.params.Mesh = { threshold: 0.2 }; // Allow some tolerance for hovering over meshes
-    this.raycaster.params.Line = { threshold: 0.2 }; // Allow some tolerance for hovering over lines (arcs)
 
     container?.appendChild(this.renderer.domElement); // Add canvas to DOM
     document.body.appendChild(VRButton.createButton(this.renderer)); // Add VR entry button

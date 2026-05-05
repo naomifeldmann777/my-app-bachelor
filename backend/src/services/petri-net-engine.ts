@@ -27,7 +27,7 @@ export class PetriNetEngine {
     // Resets the Petri net to its initial state loaded from the JSON file and returns it
     // Used by the controller to reset the petri net when requested by the frontend
     public resetPetriNet() {
-        this.currentPetriNet = this.loader.loadFromFile("../data/example3-petrinet.json"); 
+        this.currentPetriNet = this.loader.loadFromFile("../data/example-petrinet.json"); 
         return this.currentPetriNet; 
     }
 

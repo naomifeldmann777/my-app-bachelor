@@ -2,6 +2,7 @@ import * as THREE from 'three';
 // Import ThreeMeshUI for MSDF-based UI blocks/text
 import ThreeMeshUI from 'three-mesh-ui';
 
+// Class to create a VR control panel with buttons for firing transitions, resetting the simulation, and modeling actions (create place/transition, connect, delete, edit)
 export class VrControlPanel { 
 
   // Static factory method to build a control panel and return clickable buttons
@@ -265,7 +266,7 @@ export class VrControlPanel {
       borderRadius: 0.075 // Rounded corners for button background
     });
     editBtn.add(new (ThreeMeshUI as any).Text({ content: 'Edit Element' }));
-    77 // Define and register the "selected" state for the Edit button
+    // Define and register the "selected" state for the Edit button
     editBtn.setupState({
       state: 'selected', 
       attributes: idle.attributes,

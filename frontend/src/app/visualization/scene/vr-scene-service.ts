@@ -13,6 +13,7 @@ import { DragManager } from '../../services/drag-manager';
 import { ModelingManager, ModelingMode } from '../../services/modeling-manager';
 
 @Injectable({ providedIn: 'root' }) // So that the service is available in the whole app
+// Main service that manages the Three.js scene, including rendering, VR setup, and coordination of sub-components like the modeling manager, drag manager, robot avatar, and UI panels
 export class VrSceneService {
   private scene!: THREE.Scene; // Root scene 
   private camera!: THREE.PerspectiveCamera; // Main perspective camera

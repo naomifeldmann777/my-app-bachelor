@@ -1,6 +1,7 @@
 import * as THREE from 'three'; 
 import { PlaceModel } from '../../domain/place-model';
 
+// Represents the visual mesh for a place in the Petri net, including the sphere, label, and token count
 export class PlaceMesh {
     // The Three.js mesh that visually represents the place in the scene
     mesh: THREE.Mesh; 

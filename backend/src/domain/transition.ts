@@ -1,3 +1,4 @@
+// Represents a transition in the Petri net, which can be connected to places via arcs
 export class Transition {
     public id: string; 
     public label: string; 

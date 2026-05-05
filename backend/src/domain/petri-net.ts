@@ -2,6 +2,7 @@ import { Place } from '../domain/place'
 import { Transition } from '../domain/transition'
 import { Arc } from '../domain/arc'
 
+// Represents the entire Petri net model, containing arrays of places, transitions, and arcs
 export class PetriNet {
     public places: Place[]; 
     public transitions: Transition[];

@@ -49,8 +49,8 @@ export class PetriNetController {
         const id = req.params.id; 
         // Ask engine whether this transition is fireable
         const isFireable = this.engine.isFireableById(id); 
-        // Return the result as a JSON object
-        res.json({isFireable}); 
+        // Return the result directly as a boolean
+        res.json(isFireable); 
     }
 
     // POST /api/petri/fireTransition/:id

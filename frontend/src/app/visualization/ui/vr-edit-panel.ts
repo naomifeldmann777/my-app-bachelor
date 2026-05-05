@@ -23,7 +23,7 @@ const BTN_HOVERED = {
   }
 };
 
-// VrEditPanel: a "popup" ThreeMeshUI panel to edit properties of a Petri net element (place, transition, or arc)
+// Class to create a VR edit panel for editing properties of places, transitions, and arcs in the Petri net, with support for both property list and keyboard input panels
 export class VrEditPanel {
   private scene: THREE.Scene; // Reference to the Three.js scene to which the panel will be added
   private api: PetriApiService; // Reference to the API service for making update requests when properties are edited

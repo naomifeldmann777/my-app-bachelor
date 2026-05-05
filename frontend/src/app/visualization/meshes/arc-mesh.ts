@@ -1,6 +1,7 @@
 import * as THREE from 'three'; 
 import { ArcModel } from '../../domain/arc-model';
 
+// Represents the visual mesh for an arc in the Petri net, including the shaft, arrowhead, and weight label
 export class ArcMesh {
     // The Three.js group mesh representing the arc in the scene
     mesh: THREE.Group; 

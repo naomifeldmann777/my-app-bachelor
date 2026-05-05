@@ -15,7 +15,7 @@ export class PetriNetEngine {
 
     constructor () {
         // Load the Petri net model from a JSON file 
-        this.currentPetriNet = this.loader.loadFromFile("../data/example3-petrinet.json"); 
+        this.currentPetriNet = this.loader.loadFromFile("../data/example-petrinet.json"); 
     }
 
     // Returns the full current Petri net state
@@ -147,10 +147,29 @@ export class PetriNetEngine {
         return true;
     }
 
+    // Generates a new unique ID for a Petri net element using the highest existing numeric suffix
+    private generateUniqueId(prefix: string, existingIds: string[]): string {
+        let maxNumber = 0;
+
+        for (const id of existingIds) { // Iterate through existing IDs to find the highest numeric suffix for the given prefix
+            const match = id.match(new RegExp(`^${prefix}(\\d+)$`)); // Check if the ID matches the expected format (e.g., "p1", "t2", "a3")
+            if (!match) continue; // If the ID does not match the format, skip it
+            const number = Number(match[1]); // Extract the numeric part of the ID
+            if (number > maxNumber) { // If this number is greater than the current max, update maxNumber
+                maxNumber = number; // Update maxNumber to the highest numeric suffix found for the given prefix
+            }
+        }
+
+        return `${prefix}${maxNumber + 1}`; // Return a new ID with the prefix and the next number in sequence (e.g., if maxNumber is 3, return "p4" for places)
+    }
+
     // Creates a new place at the specified position and returns success status
     public createPlace(x: number, y: number, z: number): boolean {
-        // Generate a new unique ID for the place (e.g., "p" followed by the number of existing places + 1)
-        const newId = `p${this.currentPetriNet.places.length + 1}`;
+        // Generate a new unique ID for the place 
+        const newId = this.generateUniqueId(
+            'p',
+            this.currentPetriNet.places.map(place => place.id)
+        );
         // Create a new Place object with default values and the specified position
         const newPlace: Place = {
             id: newId,
@@ -167,8 +186,11 @@ export class PetriNetEngine {
 
     // Creates a new transition at the specified position and returns success status
     public createTransition(x: number, y: number, z: number): boolean {
-        // Generate a new unique ID for the transition (e.g., "t" followed by the number of existing transitions + 1)
-        const newId = `t${this.currentPetriNet.transitions.length + 1}`;
+        // Generate a new unique ID for the transitions
+        const newId = this.generateUniqueId(
+            't',
+            this.currentPetriNet.transitions.map(transition => transition.id)
+        );
         // Create a new Transition object with default values and the specified position
         const newTransition: Transition = {
             id: newId,
@@ -271,7 +293,10 @@ export class PetriNetEngine {
             return false; // Arc already exists
         }
         // Create a new Arc object with a unique ID, the specified from/to elements and default weight of 1
-        const newId = `a${this.currentPetriNet.arcs.length + 1}`;
+        const newId = this.generateUniqueId(
+            'a',
+            this.currentPetriNet.arcs.map(arc => arc.id)
+        );
         const newArc: Arc = {
             id: newId,
             from,

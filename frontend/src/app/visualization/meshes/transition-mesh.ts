@@ -1,6 +1,7 @@
 import * as THREE from 'three'; 
 import { TransitionModel } from '../../domain/transition-model';
 
+// Represents the visual mesh for a transition in the Petri net, including the box shape and label
 export class TransitionMesh {
     // The Three.js mesh representing the transition in the scene
     mesh: THREE.Mesh; 

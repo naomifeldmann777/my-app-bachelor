@@ -1,3 +1,4 @@
+// Represents a place in the Petri net, which can hold tokens and be connected to transitions via arcs
 export class Place {
     public id: string; 
     public label: string; 
